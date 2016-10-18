@@ -1,0 +1,35 @@
+[
+    {
+        "name": "${DEPLOY_APP_NAME}-${DEPLOY_SUBFAMILY}",
+        "essential": true,
+        "image": "$DEPLOY_IMAGE_NAME",
+        "workingDirectory": "/opt/app",
+        "cpu": 100,
+        "memory": 512,
+        "portMappings": [
+            {
+                "hostPort": 8080,
+                "containerPort": 8080
+            }
+        ],
+        "mountPoints": [],
+        "volumesFrom": [],
+        "environment": [
+            {
+                "name": "DEPLOY_APP_NAME",
+                "value": "$DEPLOY_APP_NAME"
+            }
+        ],
+        "command": [
+            "npm",
+            "start"
+        ],
+        "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+                "awslogs-group": "ecs-${DEPLOY_APP_NAME}-${DEPLOY_SUBFAMILY}",
+                "awslogs-region": "${DEPLOY_AWS_REGION}"
+            }
+        }
+    }
+]

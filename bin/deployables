@@ -1,0 +1,464 @@
+#!/bin/bash
+
+# based on https://github.com/circleci/go-ecs-ecr/blob/master/deploy.sh
+
+##
+## configure debugging
+##
+
+if [ ! -z "${DEPLOY_DEBUG}" ] ; then
+    set -x
+fi
+
+
+##
+## environment variables
+##
+
+#
+# optional
+#
+
+DEPLOY_DOCKERFILE=${DEPLOY_DOCKERFILE:-./Dockerfile}
+DEPLOY_DOCKER_LOCAL_TAG=${DEPLOY_DOCKER_LOCAL_TAG:-$DEPLOY_APP_NAME}
+
+DEPLOY_AWS_CONFIG="${DEPLOY_AWS_CONFIG:-~/.aws/config}"
+DEPLOY_AWS_REGION="${DEPLOY_AWS_REGION:-us-east-1}"
+DEPLOY_AWS_PROFILE="${DEPLOY_AWS_PROFILE:-deployables}"
+DEPLOY_AWS_ROLE="${DEPLOY_AWS_ROLE:-ops-admin}"
+DEPLOY_AWS_SOURCE_PROFILE="${DEPLOY_AWS_SOURCE_PROFILE:-default}"
+
+DEPLOY_SHA1="${DEPLOY_SHA1:-$( date +%s | md5 )}"
+
+# more bash-friendly output for jq
+JQ="jq --raw-output --exit-status"
+
+
+
+##
+## private functions
+##
+
+function check_environment {
+
+	if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+		echo "Error: DEPLOY_AWS_ACCOUNT is required"
+		exit 1
+	fi
+
+	if [ -z "${DEPLOY_ECR_ACCOUNT}" ] ; then
+		echo "Error: DEPLOY_ECR_ACCOUNT is required"
+		exit 1
+	fi
+
+}
+
+function aws_configure {
+
+    echo
+    echo "Configuring AWS CLI"
+    echo
+
+	# check environment variables
+	check_environment
+
+    aws --version
+#    aws configure set default.region ${DEPLOY_AWS_REGION}
+#    aws configure set default.output json
+
+    cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
+## added by deployables.aws_configure()
+[profile ${DEPLOY_AWS_PROFILE}]
+role_arn = arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_AWS_ROLE}
+source_profile = ${DEPLOY_AWS_SOURCE_PROFILE}
+region=${DEPLOY_AWS_REGION}
+output=json
+EOH
+
+    if [[ $? != 0 ]] ; then
+        echo "Error updating aws config, DEPLOY_AWS_CONFIG=${DEPLOY_AWS_CONFIG}"
+        exit 1
+    fi
+}
+
+function ecr_login () {
+
+    echo
+    echo Logging in to ECR
+    echo DEPLOY_AWS_PROFILE: ${DEPLOY_AWS_PROFILE}
+    echo DEPLOY_AWS_ACCOUNT: ${DEPLOY_AWS_ACCOUNT}
+    echo DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
+    echo
+
+	# check environment variables
+	check_environment
+
+	login_command=$(
+		aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login
+	)
+
+	if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
+		echo Error: Login command does not match DEPLOY_AWS_ACCOUNT: ${DEPLOY_AWS_ACCOUNT}
+		echo Error: Check that DEPLOY_AWS_ROLE="${DEPLOY_AWS_ROLE}" is as valid role in DEPLOY_AWS_ACCOUNT="${DEPLOY_AWS_ACCOUNT}"
+		echo login_command: ${login_command}
+		return 1
+	fi
+
+     login_command=$(
+    	echo ${login_command} \
+        | sed -e "s/${DEPLOY_AWS_ACCOUNT}/${DEPLOY_ECR_ACCOUNT}/"
+    )
+
+	if [[ ! "$login_command" =~ "https://${DEPLOY_ECR_ACCOUNT}" ]]; then
+		echo Error: Login command does not match DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
+		echo login_command: ${login_command}
+		return 1
+	fi
+
+	eval ${login_command}
+}
+
+function ecr_tag_image () {
+
+    local base_tag=$1
+    local target_tag=$2
+
+    echo
+    echo Tagging image
+    echo base_tag: ${base_tag}
+    echo target_tag: ${target_tag}
+    echo
+
+	if [[ -z "${base_tag}" || -z "${target_tag}" ]] ; then
+		echo "Error: usage: ecr_tag_image <$base_tag> <target_tag>"
+		return 1
+	fi
+
+    docker tag $base_tag $target_tag
+
+    if [[ "$?" == 1 ]] ; then
+    	echo "Error tagging target_tag=${target_tag}"
+    	return 1
+    fi
+
+}
+
+function ecr_pull_image () {
+
+    local remote_tag=$1
+
+    echo
+    echo Pulling and Retagging image
+    echo remote_tag: ${remote_tag}
+    echo
+
+	if [[ -z "${remote_tag}" ]] ; then
+		echo "Error: usage: ecr_pull_and_retag_image <$remote_tag>"
+		return 1
+	fi
+
+    docker pull $remote_tag
+
+    if [[ "$?" == 1 ]] ; then
+    	echo "Error pulling remote_tag=${remote_tag}"
+    	return 1
+    fi
+
+}
+
+function ecr_push_image () {
+
+    local image=$1
+
+    echo
+    echo Deploying image
+    echo image: ${image}
+    echo
+
+    docker push $image
+
+    if [ $? != 0 ] ; then
+        echo "Error: Unable to push image, ${image}"
+        exit 1
+    fi
+
+}
+
+function ecs_deploy_task () {
+
+    local image="$1"
+    local subfamily="$2"
+
+    echo
+    echo Deploying ECS task
+    echo image: ${image}
+    echo subfamily: ${subfamily}
+    echo
+
+    if [ -z "$subfamily" ] ; then
+        family="${DEPLOY_APP_NAME}"
+        service="${DEPLOY_APP_NAME}"
+    else
+        family="${DEPLOY_APP_NAME}-${subfamily}"
+        service="${DEPLOY_APP_NAME}-${subfamily}"
+    fi
+
+    echo
+    echo "Remembering current task definition, family: ${family}"
+    echo
+
+    previous_version=$( \
+        aws ecs describe-services \
+            --profile ${DEPLOY_AWS_PROFILE} \
+            --cluster ${DEPLOY_APP_NAME} \
+            --services ${service} \
+            | $JQ '.services[0].taskDefinition' \
+    )
+
+    echo
+    echo "Registering new task definition, family: ${family}"
+    echo
+
+    task_def_template=${DEPLOY_TASK_DEF_TEMPLATE//-FAMILY/-$subfamily}
+
+    if [[ ! -f ${task_def_template} ]] ; then
+        echo "Unable to find task definition template, task_def_template: ${task_def_template}"
+        exit 1
+    fi
+
+    task_def=$( \
+        DEPLOY_IMAGE_NAME=${image} \
+        DEPLOY_SUBFAMILY=${subfamily} \
+        ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
+    )
+
+    revision_target=$( \
+        aws ecs register-task-definition \
+            --profile ${DEPLOY_AWS_PROFILE} \
+            --container-definitions "$task_def" \
+            --family "${family}" \
+            | $JQ '.taskDefinition.taskDefinitionArn' \
+        )
+
+    if [ -z "$revision_target" ] ; then
+        echo "Failed to register task definition"
+        exit 1
+    fi
+    echo "Target Revision: $revision_target"
+
+    echo
+    echo Updating service
+    echo service: ${service}
+    echo revision_target: ${revision_target}
+    echo
+
+    revision_actual=$( \
+        aws ecs update-service \
+            --profile ${DEPLOY_AWS_PROFILE} \
+            --cluster ${DEPLOY_APP_NAME} \
+            --service ${service} \
+            --task-definition $revision_target \
+            | $JQ '.service.taskDefinition' \
+        )
+
+    if [ "$revision_target" != "$revision_actual" ] ; then
+        echo "Error updating service. Target does not match actual: ${revision_target} != ${revision_actual} "
+        exit 1
+    fi
+
+    # part one of some bash craziness to pass the revision_target
+    key="revision_target_$( echo $family | tr -s - _ )"
+    eval "$key=${revision_target}"
+    echo key : $key : ${!key}
+
+}
+
+function ecs_verify_deploy () {
+
+    local subfamily="$1"
+
+    if [ -z "$subfamily" ] ; then
+        family="${DEPLOY_APP_NAME}"
+        service="${DEPLOY_APP_NAME}"
+    else
+        family="${DEPLOY_APP_NAME}-${subfamily}"
+        service="${DEPLOY_APP_NAME}-${subfamily}"
+    fi
+
+    # part two of some bash craziness to receive the revision_target
+    key="revision_target_$( echo $family | tr -s - _ )"
+    revision_target=${!key}
+
+    echo
+    echo Verifying deploy
+    echo revision_target: $revision_target
+    echo
+
+    # wait for older revisions to disappear
+    for attempt in {1..60}; do
+
+        revision_deployed=$( \
+            aws ecs describe-services \
+                --profile ${DEPLOY_AWS_PROFILE} \
+                --cluster ${DEPLOY_APP_NAME} \
+                --services ${service} \
+                | $JQ ".services[0].deployments | .[] | select(.taskDefinition != \"$revision_target\") | .taskDefinition" \
+            )
+
+        if [ -z "$revision_deployed" ] ; then
+            echo "Success: Deployed!"
+            return 0
+        fi
+
+        echo "Waiting for update:"
+        echo "  revision_target: ${revision_target}"
+        echo "  revision_deployed: ${revision_deployed}"
+        sleep 5
+
+    done
+
+    echo "Error: Service update took too long."
+    exit 1
+}
+
+
+##
+## public functions
+##
+
+function docker_build {
+
+    echo
+    echo Building docker image
+	echo DEPLOY_DOCKERFILE: ${DEPLOY_DOCKERFILE}
+	echo DEPLOY_DOCKER_LOCAL_TAG: ${DEPLOY_DOCKER_LOCAL_TAG}
+    echo
+
+	if [ -z "${DEPLOY_DOCKERFILE}" ] ; then
+		echo "Error: DEPLOY_DOCKERFILE is required"
+		return 1
+	fi
+
+	if [ -z "${DEPLOY_DOCKER_LOCAL_TAG}" ] ; then
+		echo "Error: DEPLOY_DOCKER_LOCAL_TAG is required"
+		return 1
+	fi
+
+    docker build \
+        --rm=false \
+        -t ${DEPLOY_DOCKER_LOCAL_TAG} \
+        -f ${DEPLOY_DOCKERFILE} \
+        .
+
+}
+
+function ecs_deploy () {
+
+	# check environment variables
+	check_environment
+
+    # setup aws
+    aws_configure
+    ecr_login
+
+    #
+    # push images
+    #
+
+    if [ ! -z "${DEPLOY_RETAG_AND_PUSH}" ] ; then
+
+        remote_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_REMOTE_TAG}"
+        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_TARGET_TAG}"
+
+        echo
+        echo DEPLOY_RETAG_AND_PUSH: ${DEPLOY_RETAG_AND_PUSH}
+        echo remote_tag: ${remote_tag}
+        echo target_tag: ${target_tag}
+        echo
+
+        ecr_pull_image \
+            $remote_tag
+
+        ecr_tag_image \
+            $remote_tag \
+            $target_tag
+
+        ecr_push_image \
+            $target_tag
+
+        DEPLOY_IMAGE="${target_tag}"
+
+    else
+
+        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:$( date +%Y%m%d )-${DEPLOY_SHA1}"
+
+        echo
+        echo Pushing primary tag
+        echo target_tag: ${target_tag}
+        echo
+
+        ecr_tag_image \
+            $DEPLOY_DOCKER_LOCAL_TAG \
+            $target_tag
+
+        ecr_push_image \
+            $target_tag
+
+        if [ ! -z "$DEPLOY_PUSH_SECONDARY_TAG" ] ; then
+
+            secondary_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_PUSH_SECONDARY_TAG}"
+
+            echo
+            echo Pushing secondary tag
+            echo secondary_tag: ${secondary_tag}
+            echo
+
+            ecr_tag_image \
+                $target_tag \
+                $secondary_tag
+
+            ecr_push_image \
+                $secondary_tag
+        fi
+
+        DEPLOY_IMAGE="${target_tag}"
+
+    fi
+
+    if [ -z "${DEPLOY_IMAGE}" ] ; then
+        echo "Error: deploy image is undefined, DEPLOY_IMAGE=${DEPLOY_IMAGE}"
+        exit 1
+    fi
+
+    #
+    # deploy task defs
+    #
+
+    # deploy all the tasks first...
+    if [ -z "$DEPLOY_ECS_FAMILIES" ] ; then
+
+        ecs_deploy_task $DEPLOY_IMAGE
+        ecs_verify_deploy
+
+    else
+
+        for family in $DEPLOY_ECS_FAMILIES
+        do
+            ecs_deploy_task $DEPLOY_IMAGE $family
+        done
+
+        for family in $DEPLOY_ECS_FAMILIES
+        do
+            ecs_verify_deploy $family
+        done
+
+    fi
+
+}
+
+##
+## MAIN
+##
+
+# call arguments verbatim:
+$@
