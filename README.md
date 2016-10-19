@@ -118,7 +118,7 @@ DEPLOY_AWS_PROFILE
 DEPLOY_AWS_REGION
 : AWS region used for deploys, default "us-east-1"
 
-DEPLOY_AWS_ROLE:
+DEPLOY_AWS_ROLE
 : Pre-existing AWS role used for deploys, default "ops-admin"
 
 DEPLOY_AWS_SOURCE_PROFILE:

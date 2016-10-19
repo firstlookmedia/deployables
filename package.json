@@ -8,7 +8,7 @@
     },
     "license" : "SEE LICENSE IN LICENSE",
     "bin" : {
-        "deployable" : "./bin/deployables"
+        "deployables" : "./bin/deployables"
     },
     "scripts" : {
         "preinstall": "./lib/preinstall.sh"
