@@ -11,8 +11,8 @@
         "deployable" : "./bin/deployables"
     },
     "scripts" : {
-        "test" : "env | grep ^DEPLOY_"
+        "preinstall": "./lib/preinstall.sh"
     },
-    "os" : [  "linux" ],
+    "os" : [ "darwin", "linux" ],
     "private": true
 }
