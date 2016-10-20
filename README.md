@@ -103,6 +103,8 @@ Note: This function
 
 ## Environment Variables Reference
 
+### Input Variables
+
 <dl>
 
 <dt>DEPLOY_APP_NAME</dt>
@@ -163,3 +165,18 @@ Note: This function
 <dd>Path to task definition templates, e.g. `./taskdefs/myapp.txt`</dd>
 
 </dl>
+
+### Task Definition Template Variables
+
+Variables set by `ecs_deploy_task()` when running `envsubst` against `DEPLOY_TASK_DEF_TEMPLATE`.
+
+<dl>
+
+<dt>DEPLOY_IMAGE_NAME</dt>
+<dd>The name of the Docker image passed in to `ecs_deploy_task()`</dd>
+
+<dt>DEPLOY_SUBFAMILY</dt>
+<dd>The subfamily of the service passed in to `ecs_deploy_task()`</dd>
+
+</dl>
+
