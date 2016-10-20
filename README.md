@@ -103,59 +103,63 @@ Note: This function
 
 ## Environment Variables Reference
 
-DEPLOY_APP_NAME
-: Name of the application and ECS service, e.g. "myapp"
+<dl>
 
-DEPLOY_AWS_ACCOUNT
-: AWS account number used for deploy, e.g. "123456789"
+<dt>DEPLOY_APP_NAME</dt>
+<dd>Name of the application and ECS service, e.g. "myapp"</dd>
 
-DEPLOY_AWS_CONFIG
-: Path to aws config file for appending profile info, default "~/.aws/config"
+<dt>DEPLOY_AWS_ACCOUNT</dt>
+<dd>AWS account number used for deploy, e.g. "123456789"</dd>
 
-DEPLOY_AWS_PROFILE
-: AWS profile name used to make awscli calls, default "deployables"
+<dt>DEPLOY_AWS_CONFIG</dt>
+<dd>Path to aws config file for appending profile info, default "~/.aws/config"</dd>
 
-DEPLOY_AWS_REGION
-: AWS region used for deploys, default "us-east-1"
+<dt>DEPLOY_AWS_PROFILE</dt>
+<dd>AWS profile name used to make awscli calls, default "deployables"</dd>
 
-DEPLOY_AWS_ROLE
-: Pre-existing AWS role used for deploys, default "ops-admin"
+<dt>DEPLOY_AWS_REGION</dt>
+<dd>AWS region used for deploys, default "us-east-1"</dd>
 
-DEPLOY_AWS_SOURCE_PROFILE:
-: `source_profile` for `DEPLOY_AWS_PROFILE`, default "default"
+<dt>DEPLOY_AWS_ROLE</dt>
+<dd>Pre-existing AWS role used for deploys, default "ops-admin"</dd>
 
-DEPLOY_DEBUG
-: Enable verbose output of scripts using bash's `set -x`, e.g. "1"
+<dt>DEPLOY_AWS_SOURCE_PROFILE:</dt>
+<dd>`source_profile` for `DEPLOY_AWS_PROFILE`, default "default"</dd>
 
-DEPLOY_DOCKERFILE
-: Path to Dockerfile used by `docker_build`, default "./Dockerfile"
+<dt>DEPLOY_DEBUG</dt>
+<dd>Enable verbose output of scripts using bash's `set -x`, e.g. "1"</dd>
 
-DEPLOY_DOCKER_LOCAL_TAG
-: Tag used by `docker_build` for local image, default: `$DEPLOY_APP_NAME`
+<dt>DEPLOY_DOCKERFILE</dt>
+<dd>Path to Dockerfile used by `docker_build`, default "./Dockerfile"</dd>
 
-DEPLOY_ECR_HOST
-: Hostname for ECR repository, e.g. "1234567890.dkr.ecr.us-east-1.amazonaws.com"
+<dt>DEPLOY_DOCKER_LOCAL_TAG</dt>
+<dd>Tag used by `docker_build` for local image, default: `$DEPLOY_APP_NAME`</dd>
 
-DEPLOY_ECR_ACCOUNT
-: ECR repository's AWS account number, e.g. "1234567890"
+<dt>DEPLOY_ECR_HOST</dt>
+<dd>Hostname for ECR repository, e.g. "1234567890.dkr.ecr.us-east-1.amazonaws.com"</dd>
 
-DEPLOY_ECS_FAMILIES
-: Used to deploy one image to multiple task definitions
+<dt>DEPLOY_ECR_ACCOUNT</dt>
+<dd>ECR repository's AWS account number, e.g. "1234567890"</dd>
 
-DEPLOY_PUSH_SECONDARY_TAG
-: Tag and push the local image with a secondary tag, e.g. "staging"
+<dt>DEPLOY_ECS_FAMILIES</dt>
+<dd>Used to deploy one image to multiple task definitions</dd>
 
-DEPLOY_RETAG_AND_PUSH:
-: Pull and retag a remote image, and then deploy that tag, e.g. "1"
+<dt>DEPLOY_PUSH_SECONDARY_TAG</dt>
+<dd>Tag and push the local image with a secondary tag, e.g. "staging"</dd>
 
-DEPLOY_RETAG_REMOTE_TAG
-: Existing remote tag pulled when using `DEPLOY_RETAG_AND_PUSH`, e.g. "staging"
+<dt>DEPLOY_RETAG_AND_PUSH:</dt>
+<dd>Pull and retag a remote image, and then deploy that tag, e.g. "1"</dd>
 
-DEPLOY_RETAG_TARGET_TAG
-: New tag used when using `DEPLOY_RETAG_AND_PUSH`, e.g. "release"
+<dt>DEPLOY_RETAG_REMOTE_TAG</dt>
+<dd>Existing remote tag pulled when using `DEPLOY_RETAG_AND_PUSH`, e.g. "staging"</dd>
 
-DEPLOY_SHA1
-: Typically set to commit hash using `$CIRCLE_SHA1`, default `$( date +%s | md5 )`
+<dt>DEPLOY_RETAG_TARGET_TAG</dt>
+<dd>New tag used when using `DEPLOY_RETAG_AND_PUSH`, e.g. "release"</dd>
 
-DEPLOY_TASK_DEF_TEMPLATE
-: Path to task definition templates, e.g. `./taskdefs/myapp.txt`
+<dt>DEPLOY_SHA1</dt>
+<dd>Typically set to commit hash using `$CIRCLE_SHA1`, default `$( date +%s | md5 )`</dd>
+
+<dt>DEPLOY_TASK_DEF_TEMPLATE</dt>
+<dd>Path to task definition templates, e.g. `./taskdefs/myapp.txt`</dd>
+
+</dl>
