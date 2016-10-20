@@ -161,6 +161,9 @@ Note: This function
 <dt>DEPLOY_SHA1</dt>
 <dd>Typically set to commit hash using `$CIRCLE_SHA1`, default `$( date +%s | md5 )`</dd>
 
+<dt>DEPLOY_TASK_ROLE_ARN</dt>
+<dd>IAM Role to assign to the ECS Service, e.g. "bumblebee"</dd>
+
 <dt>DEPLOY_TASK_DEF_TEMPLATE</dt>
 <dd>Path to task definition templates, e.g. `./taskdefs/myapp.txt`</dd>
 
