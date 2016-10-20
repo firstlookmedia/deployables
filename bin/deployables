@@ -232,13 +232,24 @@ function ecs_deploy_task () {
         ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
     )
 
-    revision_target=$( \
-        aws ecs register-task-definition \
-            --profile ${DEPLOY_AWS_PROFILE} \
-            --container-definitions "$task_def" \
-            --family "${family}" \
-            | $JQ '.taskDefinition.taskDefinitionArn' \
+    if [[ -z "${DEPLOY_TASK_ROLE_ARN}" ]] ; then
+        revision_target=$( \
+            aws ecs register-task-definition \
+                --profile ${DEPLOY_AWS_PROFILE} \
+                --container-definitions "$task_def" \
+                --family "${family}" \
+                | $JQ '.taskDefinition.taskDefinitionArn' \
         )
+    else
+        revision_target=$( \
+            aws ecs register-task-definition \
+                --profile ${DEPLOY_AWS_PROFILE} \
+                --task-role-arn "${DEPLOY_TASK_ROLE_ARN}" \
+                --container-definitions "$task_def" \
+                --family "${family}" \
+                | $JQ '.taskDefinition.taskDefinitionArn' \
+        )
+    fi
 
     if [ -z "$revision_target" ] ; then
         echo "Failed to register task definition"
