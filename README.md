@@ -27,20 +27,20 @@ deployment:
     develop:
         branch: develop
         commands:
-            - ./node_modules/deployables/bin/deployables docker_build
+            - $( npm bin )/deployables docker_build
             - >
                 DEPLOY_AWS_ACCOUNT="321987654"
-                ./node_modules/deployables/bin/deployables ecs_deploy
+                $( npm bin )/deployables ecs_deploy
 
 
     staging:
         branch: master
         commands:
-            - ./node_modules/deployables/bin/deployables docker_build
+            - $( npm bin )/deployables docker_build
             - >
                 DEPLOY_AWS_ACCOUNT="9876543210"
-                DEPLOY_PUSH_SECONDARY_TAG="staging"
-                ./node_modules/deployables/bin/deployables ecs_deploy
+                DEPLOY_PUSH_SECONDARY_TAG="master"
+                $( npm bin )/deployables ecs_deploy
 
     release:
         tag: /release-.*/
@@ -48,9 +48,9 @@ deployment:
             - >
                 DEPLOY_AWS_ACCOUNT="654987321"
                 DEPLOY_RETAG_AND_PUSH=1
-                DEPLOY_RETAG_REMOTE_TAG="staging"
+                DEPLOY_RETAG_REMOTE_TAG="master"
                 DEPLOY_RETAG_TARGET_TAG="release"
-                ./node_modules/deployables/bin/deployables ecs_deploy
+                $( npm bin )/deployables ecs_deploy
 ```
 
 #### Deploy one image to multiple service targets
@@ -73,13 +73,13 @@ deployment:
     develop:
         branch: develop
         commands:
-            - ./node_modules/deployables/bin/deployables docker_build
+            - $( npm bin )/deployables docker_build
             - >
                 DEPLOY_DEBUG=1
                 DEPLOY_AWS_ACCOUNT="321987654"
                 DEPLOY_PUSH_SECONDARY_TAG="master"
                 DEPLOY_TASK_DEF_TEMPLATE="./taskdefs/myapp-master-FAMILY.txt"
-                ./node_modules/deployables/bin/deployables ecs_deploy
+                $( npm bin )/deployables ecs_deploy
 ```
 
 Note: The `-FAMILY-` in `DEPLOY_TASK_DEF_TEMPLATE` will be replaced by the values of `DEPLOY_ECS_FAMILIES`.
@@ -147,13 +147,13 @@ Note: This function
 <dd>Used to deploy one image to multiple task definitions</dd>
 
 <dt>DEPLOY_PUSH_SECONDARY_TAG</dt>
-<dd>Tag and push the local image with a secondary tag, e.g. "staging"</dd>
+<dd>Tag and push the local image with a secondary tag, e.g. "master"</dd>
 
 <dt>DEPLOY_RETAG_AND_PUSH:</dt>
 <dd>Pull and retag a remote image, and then deploy that tag, e.g. "1"</dd>
 
 <dt>DEPLOY_RETAG_REMOTE_TAG</dt>
-<dd>Existing remote tag pulled when using `DEPLOY_RETAG_AND_PUSH`, e.g. "staging"</dd>
+<dd>Existing remote tag pulled when using `DEPLOY_RETAG_AND_PUSH`, e.g. "master"</dd>
 
 <dt>DEPLOY_RETAG_TARGET_TAG</dt>
 <dd>New tag used when using `DEPLOY_RETAG_AND_PUSH`, e.g. "release"</dd>
