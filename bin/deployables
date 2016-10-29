@@ -356,11 +356,36 @@ function docker_build {
 		return 1
 	fi
 
-    docker build \
-        --rm=false \
-        -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-        -f ${DEPLOY_DOCKERFILE} \
-        .
+	if [[ ! -z "${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT}" ]] ; then
+
+		fingerprint="$( echo ${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT} | tr -d : )"
+
+		eval keyfile="~/.ssh/id_${fingerprint}"
+
+		if [[ ! -f ${keyfile} ]] ; then
+			echo "Error: Unable to find machine user key file"
+			echo "- fingerprint: ${fingerprint}"
+			echo "- keyfile: ${keyfile}"
+			return 1
+		fi
+
+		docker build \
+			--rm=false \
+			--no-cache \
+			--build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
+			-t ${DEPLOY_DOCKER_LOCAL_TAG} \
+			-f ${DEPLOY_DOCKERFILE} \
+			.
+
+	else
+
+		docker build \
+			--rm=false \
+			-t ${DEPLOY_DOCKER_LOCAL_TAG} \
+			-f ${DEPLOY_DOCKERFILE} \
+			.
+
+	fi
 
 }
 
