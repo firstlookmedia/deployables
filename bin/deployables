@@ -366,7 +366,15 @@ function docker_build {
 			echo "Error: Unable to find machine user key file"
 			echo "- fingerprint: ${fingerprint}"
 			echo "- keyfile: ${keyfile}"
-			return 1
+
+            eval keyfile="~/.ssh/id_circleci_github"
+
+            if [[ ! -f ${keyfile} ]] ; then
+                echo "Error: Unable to find circle github key file"
+                echo "- keyfile: ${keyfile}"
+                return 1
+            fi
+
 		fi
 
 		docker build \
