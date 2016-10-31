@@ -22,6 +22,8 @@ fi
 DEPLOY_DOCKERFILE=${DEPLOY_DOCKERFILE:-./Dockerfile}
 DEPLOY_DOCKER_LOCAL_TAG=${DEPLOY_DOCKER_LOCAL_TAG:-$DEPLOY_APP_NAME}
 
+DEPLOY_ECS_CLUSTER_NAME=${DEPLOY_ECS_CLUSTER_NAME:-$DEPLOY_APP_NAME}
+
 DEPLOY_AWS_CONFIG="${DEPLOY_AWS_CONFIG:-~/.aws/config}"
 DEPLOY_AWS_REGION="${DEPLOY_AWS_REGION:-us-east-1}"
 DEPLOY_AWS_PROFILE="${DEPLOY_AWS_PROFILE:-deployables}"
@@ -210,7 +212,7 @@ function ecs_deploy_task () {
     previous_version=$( \
         aws ecs describe-services \
             --profile ${DEPLOY_AWS_PROFILE} \
-            --cluster ${DEPLOY_APP_NAME} \
+            --cluster ${DEPLOY_ECS_CLUSTER_NAME} \
             --services ${service} \
             | $JQ '.services[0].taskDefinition' \
     )
@@ -267,7 +269,7 @@ function ecs_deploy_task () {
     revision_actual=$( \
         aws ecs update-service \
             --profile ${DEPLOY_AWS_PROFILE} \
-            --cluster ${DEPLOY_APP_NAME} \
+            --cluster ${DEPLOY_ECS_CLUSTER_NAME} \
             --service ${service} \
             --task-definition $revision_target \
             | $JQ '.service.taskDefinition' \
@@ -312,7 +314,7 @@ function ecs_verify_deploy () {
         revision_deployed=$( \
             aws ecs describe-services \
                 --profile ${DEPLOY_AWS_PROFILE} \
-                --cluster ${DEPLOY_APP_NAME} \
+                --cluster ${DEPLOY_ECS_CLUSTER_NAME} \
                 --services ${service} \
                 | $JQ ".services[0].deployments | .[] | select(.taskDefinition != \"$revision_target\") | .taskDefinition" \
             )

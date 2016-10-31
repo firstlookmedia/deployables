@@ -143,8 +143,14 @@ Note: This function
 <dt>DEPLOY_ECR_ACCOUNT</dt>
 <dd>ECR repository's AWS account number, e.g. "1234567890"</dd>
 
+<dt>DEPLOY_ECS_CLUSTER_NAME</dt>
+<dd>Name of the target ECS cluster, default `$DEPLOY_APP_NAME`</dd>
+
 <dt>DEPLOY_ECS_FAMILIES</dt>
 <dd>Used to deploy one image to multiple task definitions</dd>
+
+<dt>DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT</dt>
+<dd>Fingerprint of Circle SSH key to use for Github requests</dd>
 
 <dt>DEPLOY_PUSH_SECONDARY_TAG</dt>
 <dd>Tag and push the local image with a secondary tag, e.g. "master"</dd>
