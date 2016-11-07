@@ -380,6 +380,8 @@ function docker_build {
 
 		fi
 
+		echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
+
 		docker build \
 			--rm=false \
 			--no-cache \
@@ -416,7 +418,7 @@ function ecs_deploy () {
     if [ ! -z "${DEPLOY_RETAG_AND_PUSH}" ] ; then
 
         remote_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_REMOTE_TAG}"
-        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_TARGET_TAG}"
+        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${CIRCLE_TAG}"
 
         echo
         echo DEPLOY_RETAG_AND_PUSH: ${DEPLOY_RETAG_AND_PUSH}
