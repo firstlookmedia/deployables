@@ -182,7 +182,10 @@ Variables set by `ecs_deploy_task()` when running `envsubst` against `DEPLOY_TAS
 <dl>
 
 <dt>DEPLOY_IMAGE_NAME</dt>
-<dd>The name of the Docker image passed in to `ecs_deploy_task()`</dd>
+<dd>The full name of the Docker image passed in to `ecs_deploy_task()`</dd>
+
+<dt>DEPLOY_IMAGE_TAG</dt>
+<dd>The name of the Docker image tag passed in to `ecs_deploy_task()`</dd>
 
 <dt>DEPLOY_SUBFAMILY</dt>
 <dd>The subfamily of the service passed in to `ecs_deploy_task()`</dd>
