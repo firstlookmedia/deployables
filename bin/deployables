@@ -506,6 +506,25 @@ function ecs_deploy () {
 
 }
 
+function deploy_lambda () {
+  #zip into deploy package
+  pushd ./src
+  zip -r ../RssTool .
+  popd
+
+  #create lambda function
+  aws lambda create-function \
+      --region us-east-1 \
+      --function-name="RssTool" \
+      --zip-file="fileb://./RssTool.zip" \
+      --role=$DEPLOY_AWS_ROLE \
+      --handler="index.handler" \
+      --runtime="nodejs4.3" \
+      --description="A function to copy rss feeds to S3" \
+      --timeout 10 \
+      --memory-size 1024
+}
+
 ##
 ## MAIN
 ##
