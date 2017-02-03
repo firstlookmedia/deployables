@@ -515,6 +515,7 @@ function deploy_lambda () {
 
   #create a cloudwatch event rule
   aws events put-rule \
+      --region "${DEPLOY_AWS_REGION}" \
       --name "${DEPLOY_APP_ID}_schedule" \
       --schedule-expression "${DEPLOY_APP_RULE}"
 
@@ -525,10 +526,10 @@ function deploy_lambda () {
 
   #create lambda function
   aws lambda create-function \
-      --region us-east-1 \
+      --region "${DEPLOY_AWS_REGION}" \
       --function-name="${DEPLOY_APP_NAME}" \
       --zip-file="fileb://./${DEPLOY_APP_NAME}.zip" \
-      --role="${DEPLOY_AWS_ROLE}" \
+      --role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_AWS_ROLE}" \
       --handler="index.handler" \
       --runtime="nodejs4.3" \
       --description="${DEPLOY_APP_DESCRIPTION}" \
@@ -537,6 +538,7 @@ function deploy_lambda () {
 
   #give permissions
   aws lambda add-permission \
+      --region "${DEPLOY_AWS_REGION}" \
       --function-name "${DEPLOY_APP_NAME}" \
       --statement-id "${DEPLOY_APP_ID}" \
       --action 'lambda:InvokeFunction' \
@@ -545,6 +547,7 @@ function deploy_lambda () {
 
   #add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
   aws events put-targets \
+      --region "${DEPLOY_AWS_REGION}" \
       --rule "${DEPLOY_APP_ID}_schedule" \
       --targets '[{"Id" : "1", "Arn": "arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}"}]'
 }
