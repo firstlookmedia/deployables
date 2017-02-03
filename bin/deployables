@@ -553,7 +553,7 @@ function deploy_lambda () {
   aws events put-targets \
       --region "${DEPLOY_AWS_REGION}" \
       --rule "${DEPLOY_APP_ID}_schedule" \
-      --targets '[{"Id" : "1", "Arn": "arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}"}]'
+      --targets "[{\"Id\" : \"1\", \"Arn\": \"arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}\"}]"
 }
 
 
