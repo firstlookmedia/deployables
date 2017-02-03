@@ -527,7 +527,7 @@ function deploy_lambda () {
   aws lambda create-function \
       --region us-east-1 \
       --function-name="${DEPLOY_APP_NAME}" \
-      --zip-file="fileb://./$DEPLOY_APP_NAME.zip" \
+      --zip-file="fileb://./${DEPLOY_APP_NAME}.zip" \
       --role="${DEPLOY_AWS_ROLE}" \
       --handler="index.handler" \
       --runtime="nodejs4.3" \
@@ -538,7 +538,7 @@ function deploy_lambda () {
   #give permissions
   aws lambda add-permission \
       --function-name "${DEPLOY_APP_NAME}" \
-      --statement-id "$[DEPLOY_APP_ID}" \
+      --statement-id "${DEPLOY_APP_ID}" \
       --action 'lambda:InvokeFunction' \
       --principal events.amazonaws.com \
       --source-arn "arn:aws:iam:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
@@ -546,8 +546,10 @@ function deploy_lambda () {
   #add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
   aws events put-targets \
       --rule "${DEPLOY_APP_ID}_schedule" \
-      --targets '[{"Id" : "1", "Arn": "arn:aws:lambda:$DEPLOY_AWS_REGION:$DEPLOY_AWS_ACCOUNT:function:$DEPLOY_APP_NAME"}]'
+      --targets '[{"Id" : "1", "Arn": "arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}"}]'
 }
+
+``
 
 ##
 ## MAIN
