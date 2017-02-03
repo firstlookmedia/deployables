@@ -546,7 +546,7 @@ function deploy_lambda () {
   #add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
   aws events put-targets \
       --rule ${DEPLOY_APP_ID}_schedule \
-      --targets `{"Id" : "1", "Arn": "arn:aws:lambda:$DEPLOY_AWS_REGION:$DEPLOY_AWS_ACCOUNT:function:$DEPLOY_APP_NAME"}`
+      --targets `"Id" : "1", "Arn": "arn:aws:lambda:$DEPLOY_AWS_REGION:$DEPLOY_AWS_ACCOUNT:function:$DEPLOY_APP_NAME"`
 }
 
 ##
