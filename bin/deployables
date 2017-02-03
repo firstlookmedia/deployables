@@ -507,43 +507,46 @@ function ecs_deploy () {
 }
 
 function deploy_lambda () {
-  #configure aws
+  #check environment variables
+  check_environment
+
+  #setup aws
   aws_configure
 
   #create a cloudwatch event rule
   aws events put-rule \
-      --name fetch_rss_schedule \
-      --schedule-expression 'rate(5 minutes)'
+      --name ${DEPLOY_APP_ID}_schedule \
+      --schedule-expression $DEPLOY_APP_RULE
 
   #zip into deploy package
   pushd ./src
-  zip -r ../RssTool .
+  zip -r ../$DEPLOY_APP_NAME .
   popd
 
   #create lambda function
   aws lambda create-function \
       --region us-east-1 \
-      --function-name="RssTool" \
-      --zip-file="fileb://./RssTool.zip" \
+      --function-name=$DEPLOY_APP_NAME \
+      --zip-file="fileb://./$DEPLOY_APP_NAME.zip" \
       --role=$DEPLOY_AWS_ROLE \
       --handler="index.handler" \
       --runtime="nodejs4.3" \
-      --description="A function to copy rss feeds to S3" \
+      --description=$DEPLOY_APP_DESCRIPTION \
       --timeout 10 \
       --memory-size 1024
 
   #give permissions
   aws lambda add-permission \
-      --function-name RssTool \
-      --statement-id fetch_rss \
+      --function-name $DEPLOY_APP_NAME \
+      --statement-id $DEPLOY_APP_ID \
       --action 'lambda:InvokeFunction' \
       --principal events.amazonaws.com \
       --source-arn arn:aws:iam:$DEPLOY_AWS_REGION:$DEPLOY_AWS_ACCOUNT:rule/fetch_rss_schedule
 
   #add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
   aws events put-targets \
-      --rule fetch_rss_schedule \
-      --targets file://targets.json
+      --rule ${DEPLOY_APP_ID}_schedule \
+      --targets `{"Id" : "1", "Arn": "arn:aws:lambda:$DEPLOY_AWS_REGION:$DEPLOY_AWS_ACCOUNT:function:$DEPLOY_APP_NAME"}`
 }
 
 ##
