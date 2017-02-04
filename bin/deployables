@@ -523,15 +523,15 @@ function deploy_lambda () {
       --role-arn="${LAMBDA_ROLE}"
 
   #zip into deploy package
-  pushd ./src
+# pushd ./src
   zip -r ../$DEPLOY_APP_NAME .
-  popd
+# popd
 
   #create lambda function
   aws lambda create-function \
       --region "${DEPLOY_AWS_REGION}" \
       --function-name="${DEPLOY_APP_NAME}" \
-      --zip-file="fileb://./${DEPLOY_APP_NAME}.zip" \
+      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip" \
       --role="${LAMBDA_ROLE}" \
       --handler="index.handler" \
       --runtime="nodejs4.3" \
@@ -553,7 +553,7 @@ function deploy_lambda () {
   aws events put-targets \
       --region "${DEPLOY_AWS_REGION}" \
       --rule "${DEPLOY_APP_ID}_schedule" \
-      --targets "[{\"Id\" : \"1\", \"Arn\": \"arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}\"}]"
+      --targets "[{ \"Id\" : \"1\", \"Arn\": \"arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}\"} ]"
 }
 
 
