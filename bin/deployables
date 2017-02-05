@@ -520,7 +520,6 @@ function deploy_lambda () {
       --region "${DEPLOY_AWS_REGION}" \
       --name "${DEPLOY_APP_ID}_schedule" \
       --schedule-expression "${DEPLOY_APP_RULE}" \
-      --role-arn="${LAMBDA_ROLE}"
 
   #zip into deploy package
 # pushd ./src
