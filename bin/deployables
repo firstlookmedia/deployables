@@ -539,6 +539,12 @@ function deploy_lambda () {
       --timeout 10 \
       --memory-size 1024
 
+  #update lambda function
+  aws lambda update-function-code \
+      --region "${DEPLOY_AWS_REGION}" \
+      --function-name="${DEPLOY_APP_NAME}" \
+      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip" \
+
   #give permissions
   aws lambda add-permission \
       --region "${DEPLOY_AWS_REGION}" \
