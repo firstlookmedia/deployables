@@ -549,7 +549,7 @@ function deploy_lambda () {
       --region "${DEPLOY_AWS_REGION}" \
       --function-name "${DEPLOY_APP_NAME}" \
       --statement-id "1" \
-      --action 'lambda:*' \
+      --action "lambda:*" \
       --principal events.amazonaws.com \
       --source-account="${DEPLOY_AWS_ACCOUNT}" \
       --source-arn "arn:aws:events:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
