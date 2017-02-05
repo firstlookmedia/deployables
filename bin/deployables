@@ -553,7 +553,7 @@ function deploy_lambda () {
       --action 'lambda:InvokeFunction' \
       --principal events.amazonaws.com \
       --source-account="${DEPLOY_AWS_ACCOUNT}" \
-      --source-arn "arn:aws:iam:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
+      --source-arn "arn:aws:events:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
 
   #add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
   aws events put-targets \
