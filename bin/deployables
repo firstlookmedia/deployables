@@ -549,9 +549,8 @@ function deploy_lambda () {
       --region "${DEPLOY_AWS_REGION}" \
       --function-name "${DEPLOY_APP_NAME}" \
       --statement-id "1" \
-      --action "lambda:*" \
+      --action "lambda:InvokeFunction" \
       --principal events.amazonaws.com \
-      --source-account="${DEPLOY_AWS_ACCOUNT}" \
       --source-arn "arn:aws:events:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
 
   #add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
@@ -560,7 +559,6 @@ function deploy_lambda () {
       --rule "${DEPLOY_APP_ID}_schedule" \
       --targets "[{ \"Id\" : \"1\", \"Arn\": \"arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}\"} ]"
 }
-
 
 ##
 ## MAIN
