@@ -531,7 +531,7 @@ function deploy_lambda () {
       --region "${DEPLOY_AWS_REGION}" \
       --function-name="${DEPLOY_APP_NAME}" \
       --zip-file="fileb://../${DEPLOY_APP_NAME}.zip" \
-      --environment-variables="{S3_BUCKET_NAME=\"${S3_BUCKET_NAME}\", S3_BUCKET_KEY=\"${S3_BUCKET_KEY}\"}" \
+      --environment="{\"S3_BUCKET_NAME\"=\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\"=\"${S3_BUCKET_KEY}\"}" \
       --role="${LAMBDA_ROLE}" \
       --handler="index.handler" \
       --runtime="nodejs4.3" \
