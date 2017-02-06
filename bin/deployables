@@ -532,18 +532,28 @@ function deploy_lambda () {
   aws lambda create-function \
       --profile "${DEPLOY_AWS_PROFILE}" \
       --function-name="${DEPLOY_APP_NAME}" \
-      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip" \
-      --environment="{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
       --role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
       --handler="index.handler" \
-      --runtime="nodejs4.3" \
       --description="${DEPLOY_APP_DESCRIPTION}" \
+      --environment="{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
+      --runtime="nodejs4.3" \
+      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip"
+
+  # update lamda function
+  aws lambda update-function-configuration \
+      --profile "${DEPLOY_AWS_PROFILE}" \
+      --function-name="${DEPLOY_APP_NAME}" \
+      --role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
+      --handler="index.handler" \
+      --description="${DEPLOY_APP_DESCRIPTION}" \
+      --environment="{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
+      --runtime="nodejs4.3"
 
   # update lambda function
   aws lambda update-function-code \
       --profile "${DEPLOY_AWS_PROFILE}" \
       --function-name="${DEPLOY_APP_NAME}" \
-      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip" \
+      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip"
 
   # give permissions
   aws lambda add-permission \
@@ -551,7 +561,7 @@ function deploy_lambda () {
       --function-name "${DEPLOY_APP_NAME}" \
       --statement-id "1" \
       --action "lambda:InvokeFunction" \
-      --principal events.amazonaws.com \
+      --principal "events.amazonaws.com" \
       --source-arn "arn:aws:events:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
 
   # add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
