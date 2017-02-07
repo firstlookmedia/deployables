@@ -155,7 +155,7 @@ Note: This function
 <dt>DEPLOY_PUSH_SECONDARY_TAG</dt>
 <dd>Tag and push the local image with a secondary tag, e.g. "master"</dd>
 
-<dt>DEPLOY_RETAG_AND_PUSH:</dt>
+<dt>DEPLOY_RETAG_AND_PUSH</dt>
 <dd>Pull and retag a remote image, and then deploy that tag, e.g. "1"</dd>
 
 <dt>DEPLOY_RETAG_REMOTE_TAG</dt>

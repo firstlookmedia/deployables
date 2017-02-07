@@ -541,25 +541,31 @@ function deploy_lambda () {
 
     # create or update a cloudwatch event rule
     lambda_rule_arn=$( \
-    aws events put-rule \
-        --profile "${DEPLOY_AWS_PROFILE}" \
-        --name "${lambda_rule_name}" \
-        --schedule-expression "${DEPLOY_LAMBDA_EVENT_RULE}" \
-        | $JQ ".RuleArn"
+        aws events put-rule \
+            --profile "${DEPLOY_AWS_PROFILE}" \
+            --name "${lambda_rule_name}" \
+            --schedule-expression "${DEPLOY_LAMBDA_EVENT_RULE}" \
+            | $JQ ".RuleArn"
+    )
+
+    lambda_env_template="${DEPLOY_LAMBDA_ENV_TEMPLATE:-environment.txt}"
+
+    lambda_env=$( \
+        ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
     )
 
     # create lambda function
     lambda_function_arn=$( \
-    aws lambda create-function \
-        --profile "${DEPLOY_AWS_PROFILE}" \
-        --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-        --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-        --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
-        --handler "${lamdba_handler}" \
-        --runtime "${lamdba_runtime}" \
-        --environment "{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
-        --zip-file "fileb://../${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
-        | $JQ ".FunctionArn"
+        aws lambda create-function \
+            --profile "${DEPLOY_AWS_PROFILE}" \
+            --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+            --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+            --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
+            --handler "${lamdba_handler}" \
+            --runtime "${lamdba_runtime}" \
+            --environment "${lambda_env}" \
+            --zip-file "fileb://../${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
+            | $JQ ".FunctionArn"
     )
 
     # try to update the lamda function if creation failed
@@ -572,7 +578,7 @@ function deploy_lambda () {
                 --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
                 --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
                 --handler "${lamdba_handler}" \
-                --environment "{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
+                --environment "${lambda_env}" \
                 --runtime "${lamdba_runtime}" \
                 | $JQ ".FunctionArn"
         )
