@@ -544,7 +544,7 @@ function deploy_lambda () {
     aws events put-rule \
       --profile "${DEPLOY_AWS_PROFILE}" \
       --name "${lambda_rule_name}" \
-      --schedule-expression "${DEPLOY_LAMBDA_EVENT_RULE}"
+      --schedule-expression "${DEPLOY_LAMBDA_EVENT_RULE}" \
       | $JQ ".RuleArn"
     )
 
