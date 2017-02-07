@@ -563,7 +563,7 @@ function deploy_lambda () {
   )
 
   # try to update the lamda function if creation failed
-  if [[ $? != 0 ]] ; then
+  if [[ -z "$lambda_function_arn" ]] ; then
 
       lambda_function_arn=$( \
         aws lambda update-function-configuration \
