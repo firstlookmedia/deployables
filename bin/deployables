@@ -527,8 +527,17 @@ function deploy_lambda () {
     # setup aws
     aws_configure
 
+    #
     # zip into deploy package
+    #
+    pushd "${DEPLOY_LAMBDA_FUNCTION_ZIP_DIR:-.}"
     zip -q -r ../$DEPLOY_LAMBDA_FUNCTION_NAME .
+    popd
+
+    if [[ "$?" != "0" ]] ; then
+        echo "Error: Failed to create lambda zip archive"
+        exit 1
+    fi
 
     lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs4.3}"
     lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
