@@ -61,8 +61,10 @@ function aws_configure {
     echo "Configuring AWS CLI"
     echo
 
-	# check environment variables
-	# check_environment
+	if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+		echo "Error: DEPLOY_AWS_ACCOUNT is required"
+		exit 1
+	fi
 
     aws --version
 #    aws configure set default.region ${DEPLOY_AWS_REGION}
@@ -639,7 +641,7 @@ function deploy_lambda_event_rule {
         --principal "events.amazonaws.com" \
         --source-arn "${event_rule_arn}"
 
-    # add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
+    # add the lambda function to the created rule
     failed_entry_count=$( \
         aws events put-targets \
             --profile "${DEPLOY_AWS_PROFILE}" \
@@ -649,7 +651,7 @@ function deploy_lambda_event_rule {
     )
 
     if [[ "${failed_entry_count}" != "0" ]] ; then
-        echo "Error: Failed associating event rule to lambda function"
+        echo "Error: Failed associating event rule and lambda function"
         exit 1
     fi
 

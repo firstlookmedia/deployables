@@ -138,7 +138,7 @@ deployment:
 
 ## Environment Variables Reference
 
-### Global Variabled
+### Global Variables
 
 <dl>
 
