@@ -175,6 +175,33 @@ Note: This function
 
 </dl>
 
+### Lambda Variables
+
+<dl>
+
+<dt>DEPLOY_LAMBDA_EVENT_RULE</dt>
+<dd>see AWS's <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html">Schedule Expressions for Rules</a></dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_DESCRIPTION</dt>
+<dd>Description of the lambda function, optional</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE</dt>
+<dd>Path to lambda environment template, default `environment.txt`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_HANDLER</dt>
+<dd>Function handler, default `index.handler`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_NAME</dt>
+<dd>Function name, e.g. `AwesomeLambdaFunction`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_ROLE</dt>
+<dd>Function role, e.g. `lambda_role`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_RUNTIME</dt>
+<dd>Function runtime, default `nodejs4.3`</dd>
+
+</dl>
+
 ### Task Definition Template Variables
 
 Variables set by `ecs_deploy_task()` when running `envsubst` against `DEPLOY_TASK_DEF_TEMPLATE`.

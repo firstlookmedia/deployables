@@ -519,8 +519,8 @@ function deploy_lambda () {
     exit 1
     fi
 
-    if [ -z "${DEPLOY_LAMBDA_ROLE}" ] ; then
-    echo "Error: DEPLOY_LAMBDA_ROLE is required"
+    if [ -z "${DEPLOY_LAMBDA_FUNCTION_ROLE}" ] ; then
+    echo "Error: DEPLOY_LAMBDA_FUNCTION_ROLE is required"
     exit 1
     fi
 
@@ -536,8 +536,9 @@ function deploy_lambda () {
     zip -q -r ../$DEPLOY_LAMBDA_FUNCTION_NAME .
 
     lambda_rule_name="${DEPLOY_LAMBDA_FUNCTION_NAME}_rule"
-    lamdba_runtime="${DEPLOY_LAMBDA_RUNTIME:-nodejs4.3}"
-    lamdba_handler="${DEPLOY_LAMBDA_HANDLER:-index.handler}"
+    lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs4.3}"
+    lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
+    lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
 
     # create or update a cloudwatch event rule
     lambda_rule_arn=$( \
@@ -548,7 +549,7 @@ function deploy_lambda () {
             | $JQ ".RuleArn"
     )
 
-    lambda_env_template="${DEPLOY_LAMBDA_ENV_TEMPLATE:-environment.txt}"
+    lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
     lambda_env=$( \
         ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
@@ -560,7 +561,7 @@ function deploy_lambda () {
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-            --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
+            --role "${lambda_role}" \
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
             --environment "${lambda_env}" \
@@ -576,7 +577,7 @@ function deploy_lambda () {
                 --profile "${DEPLOY_AWS_PROFILE}" \
                 --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
                 --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-                --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
+                --role "${lambda_role}" \
                 --handler "${lamdba_handler}" \
                 --environment "${lambda_env}" \
                 --runtime "${lamdba_runtime}" \
