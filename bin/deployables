@@ -62,7 +62,7 @@ function aws_configure {
     echo
 
 	# check environment variables
-	check_environment
+	# check_environment
 
     aws --version
 #    aws configure set default.region ${DEPLOY_AWS_REGION}
