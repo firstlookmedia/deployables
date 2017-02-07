@@ -509,66 +509,93 @@ function ecs_deploy () {
 function deploy_lambda () {
 
   # check environment variables
-  check_environment
+  if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+    echo "Error: DEPLOY_AWS_ACCOUNT is required"
+    exit 1
+  fi
+
+  if [ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ] ; then
+    echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
+    exit 1
+  fi
 
   if [ -z "${DEPLOY_LAMBDA_ROLE}" ] ; then
     echo "Error: DEPLOY_LAMBDA_ROLE is required"
     exit 1
   fi
 
+  if [ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ] ; then
+    echo "Error: DEPLOY_LAMBDA_EVENT_RULE is required"
+    exit 1
+  fi
+
   # setup aws
   aws_configure
 
-  # create a cloudwatch event rule
-  aws events put-rule \
-      --profile "${DEPLOY_AWS_PROFILE}" \
-      --name "${DEPLOY_APP_ID}_schedule" \
-      --schedule-expression "${DEPLOY_APP_RULE}" \
-
   # zip into deploy package
-  zip -q -r ../$DEPLOY_APP_NAME .
+  zip -q -r ../$DEPLOY_LAMBDA_FUNCTION_NAME .
+
+  lambda_rule_name="${DEPLOY_LAMBDA_FUNCTION_NAME}_rule"
+  lamdba_runtime="${DEPLOY_LAMBDA_RUNTIME:-nodejs4.3}"
+  lamdba_handler="${DEPLOY_LAMBDA_HANDLER:-index.handler}"
+
+  # create or update a cloudwatch event rule
+  lambda_rule_arn=$( \
+    aws events put-rule \
+      --profile "${DEPLOY_AWS_PROFILE}" \
+      --name "${lambda_rule_name}" \
+      --schedule-expression "${DEPLOY_LAMBDA_EVENT_RULE}"
+      | $JQ ".RuleArn"
+    )
 
   # create lambda function
   aws lambda create-function \
       --profile "${DEPLOY_AWS_PROFILE}" \
-      --function-name="${DEPLOY_APP_NAME}" \
-      --role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
-      --handler="index.handler" \
-      --description="${DEPLOY_APP_DESCRIPTION}" \
-      --environment="{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
-      --runtime="nodejs4.3" \
-      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip"
+      --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+      --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+      --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
+      --handler "${lamdba_handler}" \
+      --runtime "${lamdba_runtime}" \
+      --environment "{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
+      --zip-file "fileb://../${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
 
-  # update lamda function
-  aws lambda update-function-configuration \
-      --profile "${DEPLOY_AWS_PROFILE}" \
-      --function-name="${DEPLOY_APP_NAME}" \
-      --role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
-      --handler="index.handler" \
-      --description="${DEPLOY_APP_DESCRIPTION}" \
-      --environment="{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
-      --runtime="nodejs4.3"
+  # try to update the lamda function if creation failed
+  if [[ $? != 0 ]] ; then
 
-  # update lambda function
-  aws lambda update-function-code \
-      --profile "${DEPLOY_AWS_PROFILE}" \
-      --function-name="${DEPLOY_APP_NAME}" \
-      --zip-file="fileb://../${DEPLOY_APP_NAME}.zip"
+      lambda_function_arn=$( \
+        aws lambda update-function-configuration \
+          --profile "${DEPLOY_AWS_PROFILE}" \
+          --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+          --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+          --role "arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_ROLE}" \
+          --handler "${lamdba_handler}" \
+          --environment "{\"Variables\": {\"S3_BUCKET_NAME\":\"${S3_BUCKET_NAME}\", \"S3_BUCKET_KEY\":\"${S3_BUCKET_KEY}\"}}" \
+          --runtime "${lamdba_runtime}" \
+          | $JQ ".FunctionArn"
+        )
+
+      # update lambda function
+      aws lambda update-function-code \
+          --profile "${DEPLOY_AWS_PROFILE}" \
+          --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+          --zip-file "fileb://../${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
+
+  fi
 
   # give permissions
   aws lambda add-permission \
       --profile "${DEPLOY_AWS_PROFILE}" \
-      --function-name "${DEPLOY_APP_NAME}" \
+      --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
       --statement-id "1" \
       --action "lambda:InvokeFunction" \
       --principal "events.amazonaws.com" \
-      --source-arn "arn:aws:events:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:rule/${DEPLOY_APP_ID}_schedule"
+      --source-arn "${lambda_rule_arn}"
 
   # add the lambda function to the created rule (i.e.,target the lambda function with the newly created rule)
   aws events put-targets \
       --profile "${DEPLOY_AWS_PROFILE}" \
-      --rule "${DEPLOY_APP_ID}_schedule" \
-      --targets "[{ \"Id\" : \"1\", \"Arn\": \"arn:aws:lambda:${DEPLOY_AWS_REGION}:${DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_APP_NAME}\"}]"
+      --rule "${lambda_rule_name}" \
+      --targets "[{ \"Id\" : \"1\", \"Arn\": \"${lambda_function_arn}\"}]"
 }
 
 ##
