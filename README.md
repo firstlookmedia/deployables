@@ -5,6 +5,8 @@ A basket of deploy scripts.
 
 Initially developed for building docker images and deploying updated task definitions to ECS via CircleCI.
 
+Also supports deploying scheduled lambda function.
+
 ## ECS Examples
 
 ##### Standard deploy for develop and master branches and release tags
