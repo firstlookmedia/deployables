@@ -259,6 +259,9 @@ Variables set by `ecs_deploy_task()` when running `envsubst` against `DEPLOY_TAS
 <dt>DEPLOY_LAMBDA_FUNCTION_RUNTIME</dt>
 <dd>Function runtime, default `nodejs4.3`</dd>
 
+<dt>DEPLOY_LAMBDA_FUNCTION_TIMEOUT</dt>
+<dd>Function timeout in seconds, default `3`</dd>
+
 <dt>DEPLOY_LAMBDA_FUNCTION_ZIP_DIR</dt>
 <dd>Directory that contains the lambda function, default `.`</dd>
 

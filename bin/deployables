@@ -544,6 +544,7 @@ function deploy_lambda () {
     lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs4.3}"
     lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
     lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
+    lambda_timeout="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
 
     lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
@@ -557,6 +558,7 @@ function deploy_lambda () {
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+            --timeout "${lambda_timeout}" \
             --role "${lambda_role}" \
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
@@ -573,6 +575,7 @@ function deploy_lambda () {
                 --profile "${DEPLOY_AWS_PROFILE}" \
                 --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
                 --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+                --timeout "${lambda_timeout}" \
                 --role "${lambda_role}" \
                 --handler "${lamdba_handler}" \
                 --environment "${lambda_env}" \
