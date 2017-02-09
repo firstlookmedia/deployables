@@ -533,7 +533,7 @@ function deploy_lambda () {
     # zip into deploy package
     #
     pushd "${DEPLOY_LAMBDA_FUNCTION_ZIP_DIR:-.}"
-    zip -q -r ../$DEPLOY_LAMBDA_FUNCTION_NAME .
+    zip -q -r ../$DEPLOY_LAMBDA_FUNCTION_NAME . -x "*.git*"
     popd
 
     if [[ "$?" != "0" ]] ; then
