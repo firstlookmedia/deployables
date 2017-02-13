@@ -1,5 +1,5 @@
 
-# deployables
+# Deployables
 
 A basket of deploy scripts.
 
@@ -22,7 +22,9 @@ machine:
         DEPLOY_TASK_DEF_TEMPLATE: "./taskdefs/myapp.txt"
         DEPLOY_SHA1: "${CIRCLE_SHA1}"
 
-[...]
+dependencies:
+    override:
+        - npm install -g https://github.com/firstlookmedia/deployables
 
 deployment:
 
@@ -68,7 +70,9 @@ machine:
         DEPLOY_ECR_ACCOUNT: "1234567890"
         DEPLOY_SHA1: "${CIRCLE_SHA1}"
 
-[...]
+dependencies:
+    override:
+        - npm install -g https://github.com/firstlookmedia/deployables
 
 deployment:
 
