@@ -1,11 +1,13 @@
 
-# deployables
+# Deployables
 
 A basket of deploy scripts.
 
 Initially developed for building docker images and deploying updated task definitions to ECS via CircleCI.
 
-## Sample circle.yml
+Also supports deploying scheduled lambda function.
+
+## ECS Examples
 
 ##### Standard deploy for develop and master branches and release tags
 
@@ -20,7 +22,9 @@ machine:
         DEPLOY_TASK_DEF_TEMPLATE: "./taskdefs/myapp.txt"
         DEPLOY_SHA1: "${CIRCLE_SHA1}"
 
-[...]
+dependencies:
+    override:
+        - npm install -g https://github.com/firstlookmedia/deployables
 
 deployment:
 
@@ -66,7 +70,9 @@ machine:
         DEPLOY_ECR_ACCOUNT: "1234567890"
         DEPLOY_SHA1: "${CIRCLE_SHA1}"
 
-[...]
+dependencies:
+    override:
+        - npm install -g https://github.com/firstlookmedia/deployables
 
 deployment:
 
@@ -86,6 +92,40 @@ Note: The `-FAMILY-` in `DEPLOY_TASK_DEF_TEMPLATE` will be replaced by the value
 
 In other words, the example above will load ./taskdefs/myapp-master-__foo__.txt and ./taskdefs/myapp-master-__bar__.txt.
 
+## Lambda Example
+
+##### Basic lambda deploy for develop and master branches
+
+```
+machine:
+    environment:
+        DEPLOY_LAMBDA_FUNCTION_NAME: "AwesomeLambdaFunction"
+        DEPLOY_LAMBDA_FUNCTION_DESCRIPTION: "Do Something Awesome"
+        DEPLOY_LAMBDA_FUNCTION_ROLE: "lambda_role"
+        DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE: "./environment.txt"
+        DEPLOY_LAMBDA_EVENT_RULE: "rate(5 minutes)"
+
+[...]
+
+deployment:
+
+    develop:
+        branch: develop
+        commands:
+            - >
+                DEPLOY_AWS_ACCOUNT="321987654"
+                $( npm bin )/deployables deploy_lambda
+
+
+    staging:
+        branch: master
+        commands:
+            - >
+                DEPLOY_AWS_ACCOUNT="9876543210"
+                $( npm bin )/deployables deploy_lambda
+
+```
+
 
 ## Public Functions
 
@@ -93,22 +133,20 @@ In other words, the example above will load ./taskdefs/myapp-master-__foo__.txt 
 
 * Uses `DEPLOY_DOCKERFILE` and `DEPLOY_DOCKER_LOCAL_TAG` to call `docker build ...`
 
-
 #### `ecs_deploy`
 
-* Main function for tagging images and deploying updated task definitions
+* Used for tagging docker images and deploying updated ECS task definitions
 
-Note: This function
+#### `deploy_lambda`
+
+* Used for deploying lambda functions
 
 
 ## Environment Variables Reference
 
-### Input Variables
+### Global Variables
 
 <dl>
-
-<dt>DEPLOY_APP_NAME</dt>
-<dd>Name of the application and ECS service, e.g. "myapp"</dd>
 
 <dt>DEPLOY_AWS_ACCOUNT</dt>
 <dd>AWS account number used for deploy, e.g. "123456789"</dd>
@@ -131,6 +169,19 @@ Note: This function
 <dt>DEPLOY_DEBUG</dt>
 <dd>Enable verbose output of scripts using bash's `set -x`, e.g. "1"</dd>
 
+<dt>DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT</dt>
+<dd>Fingerprint of Circle SSH key to use for Github requests</dd>
+
+</dl>
+
+
+### ECS Variables
+
+<dl>
+
+<dt>DEPLOY_APP_NAME</dt>
+<dd>Name of the application and ECS service, e.g. "myapp"</dd>
+
 <dt>DEPLOY_DOCKERFILE</dt>
 <dd>Path to Dockerfile used by `docker_build`, default "./Dockerfile"</dd>
 
@@ -149,13 +200,10 @@ Note: This function
 <dt>DEPLOY_ECS_FAMILIES</dt>
 <dd>Used to deploy one image to multiple task definitions</dd>
 
-<dt>DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT</dt>
-<dd>Fingerprint of Circle SSH key to use for Github requests</dd>
-
 <dt>DEPLOY_PUSH_SECONDARY_TAG</dt>
 <dd>Tag and push the local image with a secondary tag, e.g. "master"</dd>
 
-<dt>DEPLOY_RETAG_AND_PUSH:</dt>
+<dt>DEPLOY_RETAG_AND_PUSH</dt>
 <dd>Pull and retag a remote image, and then deploy that tag, e.g. "1"</dd>
 
 <dt>DEPLOY_RETAG_REMOTE_TAG</dt>
@@ -175,7 +223,7 @@ Note: This function
 
 </dl>
 
-### Task Definition Template Variables
+### ECS Task Definition Template Variables
 
 Variables set by `ecs_deploy_task()` when running `envsubst` against `DEPLOY_TASK_DEF_TEMPLATE`.
 
@@ -191,4 +239,39 @@ Variables set by `ecs_deploy_task()` when running `envsubst` against `DEPLOY_TAS
 <dd>The subfamily of the service passed in to `ecs_deploy_task()`</dd>
 
 </dl>
+
+
+### Lambda Variables
+
+<dl>
+
+<dt>DEPLOY_LAMBDA_EVENT_RULE</dt>
+<dd>Used to schedule a lambda function, see AWS's <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html">Schedule Expressions for Rules</a></dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_DESCRIPTION</dt>
+<dd>Description of the lambda function, optional</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE</dt>
+<dd>Path to lambda environment template, default `environment.txt`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_HANDLER</dt>
+<dd>Function handler, default `index.handler`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_NAME</dt>
+<dd>Function name, e.g. `AwesomeLambdaFunction`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_ROLE</dt>
+<dd>Function role, e.g. `lambda_role`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_RUNTIME</dt>
+<dd>Function runtime, default `nodejs4.3`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_TIMEOUT</dt>
+<dd>Function timeout in seconds, default `3`</dd>
+
+<dt>DEPLOY_LAMBDA_FUNCTION_ZIP_DIR</dt>
+<dd>Directory that contains the lambda function, default `.`</dd>
+
+</dl>
+
 
