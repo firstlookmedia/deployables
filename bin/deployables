@@ -649,7 +649,7 @@ function deploy_lambda_event_rule {
         aws events put-targets \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --rule "${event_rule_name}" \
-            --targets "[{ \"Id\" : \"1\", \"Arn\": \"${lambda_function_arn}\"}]" \
+            --targets "[{ \"Id\" : \"1\", \"Arn\": \"${lambda_function_arn}\" ${DEPLOY_LAMBDA_TARGET_INPUT:+,\"Input\": \"${DEPLOY_LAMBDA_TARGET_INPUT}\"}}]" \
             | $JQ ".FailedEntryCount"
     )
 
