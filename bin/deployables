@@ -613,6 +613,10 @@ function deploy_lambda_event_rule {
         return
     fi
 
+    if [[ -z "${DEPLOY_LAMBDA_EVENT_BASENAME}" ]] ; then
+        echo "Error: 'DEPLOY_LAMBDA_EVENT_BASENAME' is required for deploy_lambda_event_rule."
+        exit 1
+    fi
     aws_configure
 
     lambda_function_name="${1:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
@@ -628,11 +632,7 @@ function deploy_lambda_event_rule {
         exit 1
     fi
 
-    # replace parens and spaces with -
-    tmp_slug_rule=${DEPLOY_LAMBDA_EVENT_RULE//[\(\) ]/-}
-    # trim trailing -
-    slug_rule=${tmp_slug_rule%%-}
-    event_rule_name="${lambda_function_name}_${slug_rule}"
+    event_rule_name="${DEPLOY_LAMBDA_EVENT_BASENAME}_rule"
 
     # create or update a cloudwatch event rule
     event_rule_arn=$( \
@@ -644,9 +644,15 @@ function deploy_lambda_event_rule {
     )
 
     # give permissions (statement id needs to be consistent string for this rule)
-    permission_statement_id="${lambda_function_name}_${event_rule_name}"
 
-    # NB this can fail if the permission already exists, this is ok.
+    permission_statement_id="${DEPLOY_LAMBDA_EVENT_BASENAME}_permission"
+
+    # NB this can fail if the permission doesn't exist, this is ok.
+    aws lambda remove-permission \
+        --profile "${DEPLOY_AWS_PROFILE}" \
+        --function-name "${lambda_function_arn}" \
+        --statement-id "${permission_statement_id}" \
+    
     aws lambda add-permission \
         --profile "${DEPLOY_AWS_PROFILE}" \
         --function-name "${lambda_function_arn}" \
@@ -685,7 +691,7 @@ function deploy_lambda_rule_target {
         aws events put-targets \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --rule "${event_rule_name}" \
-            --targets "[{ \"Id\" : \"deployables_${DEPLOY_LAMBDA_TARGET_NAME}\", \"Arn\": \"${lambda_function_arn}\" ${DEPLOY_LAMBDA_TARGET_INPUT:+,\"Input\": \"${DEPLOY_LAMBDA_TARGET_INPUT}\"}}]" \
+            --targets "[{ \"Id\" : \"${DEPLOY_LAMBDA_EVENT_BASENAME}_target\", \"Arn\": \"${lambda_function_arn}\" ${DEPLOY_LAMBDA_TARGET_INPUT:+,\"Input\": \"${DEPLOY_LAMBDA_TARGET_INPUT}\"}}]" \
             | $JQ ".FailedEntryCount"
     )
 
