@@ -636,11 +636,14 @@ function deploy_lambda_event_rule {
             | $JQ ".RuleArn"
     )
 
-    # give permissions
+    # give permissions (statement id needs to be consistent string for this rule)
+    permission_statement_id="${lambda_function_arn}_${event_rule_arn}"
+
+    # NB this can fail if the permission already exists, this is ok.
     aws lambda add-permission \
         --profile "${DEPLOY_AWS_PROFILE}" \
         --function-name "${lambda_function_arn}" \
-        --statement-id "1" \
+        --statement-id "${permission_statement_id}" \
         --action "lambda:InvokeFunction" \
         --principal "events.amazonaws.com" \
         --source-arn "${event_rule_arn}"
