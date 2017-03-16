@@ -603,7 +603,6 @@ function deploy_lambda () {
     fi
 
     deploy_lambda_event_rule \
-        $DEPLOY_LAMBDA_FUNCTION_NAME \
         $lambda_function_arn
 }
 
@@ -619,13 +618,7 @@ function deploy_lambda_event_rule {
     fi
     aws_configure
 
-    lambda_function_name="${1:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
     lambda_function_arn="${2:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
-
-    if [ -z "${lambda_function_name}" ] ; then
-        echo "Error: Passing a 'lambda_function_name' is required for deploy_lambda_event_rule"
-        exit 1
-    fi
 
     if [ -z "${lambda_function_arn}" ] ; then
         echo "Error: Passing a 'lambda_function_arn' is required for deploy_lambda_event_rule"
@@ -677,7 +670,7 @@ function deploy_lambda_rule_target {
     event_rule_name="$2"
 
     if [ -z "${lambda_function_arn}" ] ; then
-        echo "Error: Passing a 'lambda_function_name' is required for deploy_lambda_rule_target"
+        echo "Error: Passing a 'lambda_function_arn' is required for deploy_lambda_rule_target"
         exit 1
     fi
 
