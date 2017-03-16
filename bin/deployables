@@ -647,8 +647,8 @@ function deploy_lambda_event_rule {
 
     # add the lambda function to the created rule
     deploy_lambda_rule_target \
-        lambda_function_arn \
-        event_rule_name
+        $lambda_function_arn \
+        $event_rule_name
 }
 
 function deploy_lambda_rule_target {
