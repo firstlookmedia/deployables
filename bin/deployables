@@ -596,15 +596,16 @@ function deploy_lambda () {
         exit 1
     fi
 
-    if [[ ! -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
-        deploy_lambda_event_rule \
-            $DEPLOY_LAMBDA_FUNCTION_NAME \
-            $lambda_function_arn
-    fi
-
+    deploy_lambda_event_rule \
+        $DEPLOY_LAMBDA_FUNCTION_NAME \
+        $lambda_function_arn
 }
 
 function deploy_lambda_event_rule {
+    if [[ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
+        echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying any rules."
+        return
+    fi
 
     lambda_function_name="$1"
     lambda_function_arn="$2"
@@ -645,6 +646,31 @@ function deploy_lambda_event_rule {
         --source-arn "${event_rule_arn}"
 
     # add the lambda function to the created rule
+    deploy_lambda_rule_target \
+        lambda_function_arn \
+        event_rule_name
+}
+
+function deploy_lambda_rule_target {
+    if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT}" ]] ; then
+        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT, not deploying any targets."
+        return
+    fi
+
+    lambda_function_arn="$1"
+    event_rule_name="$2"
+
+    if [ -z "${lambda_function_arn}" ] ; then
+        echo "Error: Passing a 'lambda_function_name' is required for deploy_lambda_rule_target"
+        exit 1
+    fi
+
+    if [ -z "${event_rule_name}" ] ; then
+        echo "Error: Passing a 'event_rule_name' is required for deploy_lambda_rule_target"
+        exit 1
+    fi
+
+    # add the lambda target to the rule
     failed_entry_count=$( \
         aws events put-targets \
             --profile "${DEPLOY_AWS_PROFILE}" \
