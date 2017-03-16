@@ -625,7 +625,11 @@ function deploy_lambda_event_rule {
         exit 1
     fi
 
-    event_rule_name="${lambda_function_name}_rule"
+    # replace parens and spaces with -
+    tmp_slug_rule=${DEPLOY_LAMBDA_EVENT_RULE//[\(\) ]/-}
+    # trim trailing -
+    slug_rule=${tmp_slug_rule%%-}
+    event_rule_name="${lambda_function_name}_${slug_rule}"
 
     # create or update a cloudwatch event rule
     event_rule_arn=$( \
