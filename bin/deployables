@@ -637,7 +637,7 @@ function deploy_lambda_event_rule {
     )
 
     # give permissions (statement id needs to be consistent string for this rule)
-    permission_statement_id="${lambda_function_arn}_${event_rule_arn}"
+    permission_statement_id="${lambda_function_name}_${event_rule_name}"
 
     # NB this can fail if the permission already exists, this is ok.
     aws lambda add-permission \
