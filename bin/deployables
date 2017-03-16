@@ -661,14 +661,14 @@ function deploy_lambda_event {
 }
 
 function deploy_lambda_rule_target {
-    if [[ -z "${DEPLOY_LAMBDA_TARGET_JSON}" ]] ; then
-        echo "Info: No DEPLOY_LAMBDA_TARGET_JSON, not deploying any targets."
+    if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT_JSON}" ]] ; then
+        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, not deploying any targets."
         return
     fi
 
     # this json is a sub-json to something else, so we need to escape the quotes because
     # the aws cli is stupid
-    input_json_escaped=${DEPLOY_LAMBDA_TARGET_JSON//\"/\\\"}
+    input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
 
     lambda_function_arn="$1"
     event_rule_name="$2"
