@@ -607,21 +607,16 @@ function deploy_lambda_event_rule {
         return
     fi
 
-    lambda_function_name="$1"
-    lambda_function_arn="$2"
+    lambda_function_name="${1:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
+    lambda_function_arn="${2:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
 
     if [ -z "${lambda_function_name}" ] ; then
-        echo "Error: Passing a 'lambda_function_name' is required"
+        echo "Error: Passing a 'lambda_function_name' is required for deploy_lambda_event_rule"
         exit 1
     fi
 
     if [ -z "${lambda_function_arn}" ] ; then
-        echo "Error: Passing a 'lambda_function_arn' is required"
-        exit 1
-    fi
-
-    if [[ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
-        echo "Error: DEPLOY_LAMBDA_EVENT_RULE is required"
+        echo "Error: Passing a 'lambda_function_arn' is required for deploy_lambda_event_rule"
         exit 1
     fi
 
