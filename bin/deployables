@@ -602,11 +602,11 @@ function deploy_lambda () {
         exit 1
     fi
 
-    deploy_lambda_event_rule \
+    deploy_lambda_event \
         $lambda_function_arn
 }
 
-function deploy_lambda_event_rule {
+function deploy_lambda_event {
     if [[ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
         echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying any rules."
         return
