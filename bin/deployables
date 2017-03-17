@@ -603,6 +603,7 @@ function deploy_lambda () {
     fi
 
     deploy_lambda_event \
+        $DEPLOY_LAMBDA_EVENT_BASENAME \
         $lambda_function_arn
 }
 
@@ -624,7 +625,8 @@ function deploy_lambda_event {
 
     aws_configure
 
-    lambda_function_arn="${1:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
+    lambda_event_basename="${1:-$DEPLOY_LAMBDA_EVENT_BASENAME}"
+    lambda_function_arn="${2:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
     event_rule_name="${DEPLOY_LAMBDA_EVENT_BASENAME}_rule"
     permission_statement_id="${DEPLOY_LAMBDA_EVENT_BASENAME}_permission"
 
