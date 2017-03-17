@@ -608,24 +608,34 @@ function deploy_lambda () {
 
 function deploy_lambda_event {
     if [[ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
-        echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying any rules."
+        echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying event."
+        return
+    fi
+
+    if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT_JSON}" ]] ; then
+        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, not deploying event."
         return
     fi
 
     if [[ -z "${DEPLOY_LAMBDA_EVENT_BASENAME}" ]] ; then
-        echo "Error: 'DEPLOY_LAMBDA_EVENT_BASENAME' is required for deploy_lambda_event_rule."
+        echo "Error: 'DEPLOY_LAMBDA_EVENT_BASENAME' is required for deploy_lambda_event."
         exit 1
     fi
+
     aws_configure
 
-    lambda_function_arn="${2:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
+    lambda_function_arn="${1:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
+    event_rule_name="${DEPLOY_LAMBDA_EVENT_BASENAME}_rule"
+    permission_statement_id="${DEPLOY_LAMBDA_EVENT_BASENAME}_permission"
+
+    # this json is a sub-json to something else, so we need to escape the quotes because
+    # the aws cli is stupid
+    input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
 
     if [ -z "${lambda_function_arn}" ] ; then
-        echo "Error: Passing a 'lambda_function_arn' is required for deploy_lambda_event_rule"
+        echo "Error: DEPLOY_LAMBDA_FUNCTION_ARN or passing a 'lambda_function_arn' is required for deploy_lambda_event."
         exit 1
     fi
-
-    event_rule_name="${DEPLOY_LAMBDA_EVENT_BASENAME}_rule"
 
     # create or update a cloudwatch event rule
     event_rule_arn=$( \
@@ -636,16 +646,13 @@ function deploy_lambda_event {
             | $JQ ".RuleArn"
     )
 
-    # give permissions (statement id needs to be consistent string for this rule)
-
-    permission_statement_id="${DEPLOY_LAMBDA_EVENT_BASENAME}_permission"
-
     # NB this can fail if the permission doesn't exist, this is ok.
     aws lambda remove-permission \
         --profile "${DEPLOY_AWS_PROFILE}" \
         --function-name "${lambda_function_arn}" \
         --statement-id "${permission_statement_id}" \
     
+    # give permissions (statement id needs to be consistent string for this rule)
     aws lambda add-permission \
         --profile "${DEPLOY_AWS_PROFILE}" \
         --function-name "${lambda_function_arn}" \
@@ -653,35 +660,6 @@ function deploy_lambda_event {
         --action "lambda:InvokeFunction" \
         --principal "events.amazonaws.com" \
         --source-arn "${event_rule_arn}"
-
-    # add the lambda function to the created rule
-    deploy_lambda_rule_target \
-        $lambda_function_arn \
-        $event_rule_name
-}
-
-function deploy_lambda_rule_target {
-    if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT_JSON}" ]] ; then
-        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, not deploying any targets."
-        return
-    fi
-
-    # this json is a sub-json to something else, so we need to escape the quotes because
-    # the aws cli is stupid
-    input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
-
-    lambda_function_arn="$1"
-    event_rule_name="$2"
-
-    if [ -z "${lambda_function_arn}" ] ; then
-        echo "Error: Passing a 'lambda_function_arn' is required for deploy_lambda_rule_target"
-        exit 1
-    fi
-
-    if [ -z "${event_rule_name}" ] ; then
-        echo "Error: Passing a 'event_rule_name' is required for deploy_lambda_rule_target"
-        exit 1
-    fi
 
     # add the lambda target to the rule
     failed_entry_count=$( \
@@ -696,7 +674,6 @@ function deploy_lambda_rule_target {
         echo "Error: Failed associating event rule and lambda function"
         exit 1
     fi
-
 }
 
 ##
