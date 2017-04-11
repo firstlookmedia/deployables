@@ -73,8 +73,8 @@ function aws_configure {
 	fi
 
     aws --version
-#    aws configure set default.region ${DEPLOY_AWS_REGION}
-#    aws configure set default.output json
+
+    mkdir -p $(dirname $( eval echo -n $DEPLOY_AWS_CONFIG ))
 
     cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
 ## added by deployables.aws_configure()
