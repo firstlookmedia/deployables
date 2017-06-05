@@ -321,7 +321,7 @@ function ecs_verify_deploy () {
 	echo
 
 	# wait for older revisions to disappear
-	for attempt in {1..60}; do
+	for attempt in {1..100}; do
 
 		revision_deployed=$( \
 			aws ecs describe-services \
@@ -339,7 +339,7 @@ function ecs_verify_deploy () {
 		echo "Waiting for update:"
 		echo "  revision_target: ${revision_target}"
 		echo "  revision_deployed: ${revision_deployed}"
-		sleep 5
+		sleep 6
 
 	done
 
