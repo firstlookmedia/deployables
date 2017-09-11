@@ -244,6 +244,7 @@ function ecs_deploy_task () {
 		DEPLOY_ECS_CLUSTER_NAME=${DEPLOY_ECS_CLUSTER_NAME} \
 		DEPLOY_SUBFAMILY=${subfamily} \
 		DEPLOY_AWS_REGION=${DEPLOY_AWS_REGION} \
+		DEPLOY_APP_NAME=${family} \
 		${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
 	)
 
