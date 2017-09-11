@@ -247,6 +247,8 @@ function ecs_deploy_task () {
 		${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
 	)
 
+	echo "Deploying Task Def: $(echo $task_def | $JQ .)"
+
 	if [[ -z "${DEPLOY_TASK_ROLE_ARN}" ]] ; then
 		revision_target=$( \
 			aws ecs register-task-definition \
