@@ -127,6 +127,11 @@ function ecr_login () {
 		return 1
 	fi
 
+	# Newer versions of docker don't work well with the default login args to aws-cli
+	if [[ $(docker --version) == "Docker version 17.09.0-ce, build afdb6d4" ]]; then
+		login_command=$(echo ${login_command} --no-include-email)
+	fi
+
 	eval ${login_command}
 }
 
