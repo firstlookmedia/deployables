@@ -131,6 +131,7 @@ function ecr_login () {
 	if [[ $(docker --version) == "Docker version 17.09.0-ce, build afdb6d4" ]]; then
 		login_command=$(echo ${login_command} --no-include-email)
 	fi
+	echo $login_command
 
 	eval ${login_command}
 }
