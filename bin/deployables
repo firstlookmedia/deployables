@@ -116,8 +116,6 @@ function ecr_login () {
 		aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login $email
 	)
 
-	echo $login_command
-
 	if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
 		echo Error: Login command does not match DEPLOY_AWS_ACCOUNT: ${DEPLOY_AWS_ACCOUNT}
 		echo Error: Check that DEPLOY_AWS_ROLE="${DEPLOY_AWS_ROLE}" is as valid role in DEPLOY_AWS_ACCOUNT="${DEPLOY_AWS_ACCOUNT}"
