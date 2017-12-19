@@ -76,8 +76,7 @@ function aws_configure {
 
 	mkdir -p $(dirname $( eval echo -n $DEPLOY_AWS_CONFIG ))
 
-	if grep -Fxq "deployables.aws_configure()" $( eval echo -n $DEPLOY_AWS_CONFIG ); then
-		cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
+	cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
 ## added by deployables.aws_configure()
 [profile ${DEPLOY_AWS_PROFILE}]
 role_arn = arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_AWS_ROLE}
@@ -86,10 +85,9 @@ region=${DEPLOY_AWS_REGION}
 output=json
 EOH
 
-		if [[ $? != 0 ]] ; then
-			echo "Error updating aws config, DEPLOY_AWS_CONFIG=${DEPLOY_AWS_CONFIG}"
-			exit 1
-		fi
+	if [[ $? != 0 ]] ; then
+		echo "Error updating aws config, DEPLOY_AWS_CONFIG=${DEPLOY_AWS_CONFIG}"
+		exit 1
 	fi
 
 	cat $( eval echo -n $DEPLOY_AWS_CONFIG )
