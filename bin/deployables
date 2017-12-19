@@ -92,7 +92,7 @@ EOH
 		fi
 	fi
 
-	cat $DEPLOY_AWS_CONFIG
+	cat $( eval echo -n $DEPLOY_AWS_CONFIG )
 
 	aws_configure_done=1
 }
