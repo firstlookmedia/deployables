@@ -284,6 +284,11 @@ function ecs_deploy_task () {
 	fi
 	echo "Target Revision: $revision_target"
 
+
+	if [ ! -z "${DEPLOY_NO_SERVICE}" ] ; then
+		exit
+	fi
+
 	echo
 	echo Updating service
 	echo service: ${service}
