@@ -76,7 +76,7 @@ function aws_configure {
 
 	mkdir -p $(dirname $( eval echo -n $DEPLOY_AWS_CONFIG ))
 
-	cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
+	cat > $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
 ## added by deployables.aws_configure()
 [profile ${DEPLOY_AWS_PROFILE}]
 role_arn = arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_AWS_ROLE}
