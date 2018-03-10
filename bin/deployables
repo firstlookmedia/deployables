@@ -43,15 +43,15 @@ JQ="jq --raw-output --exit-status"
 
 function check_environment {
 
-	if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
-		echo "Error: DEPLOY_AWS_ACCOUNT is required"
-		exit 1
-	fi
+    if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+        echo "Error: DEPLOY_AWS_ACCOUNT is required"
+        exit 1
+    fi
 
-	if [ -z "${DEPLOY_ECR_ACCOUNT}" ] ; then
-		echo "Error: DEPLOY_ECR_ACCOUNT is required"
-		exit 1
-	fi
+    if [ -z "${DEPLOY_ECR_ACCOUNT}" ] ; then
+        echo "Error: DEPLOY_ECR_ACCOUNT is required"
+        exit 1
+    fi
 
 }
 
@@ -65,10 +65,10 @@ function aws_configure {
     return
   fi
 
-	if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
-		echo "Error: DEPLOY_AWS_ACCOUNT is required"
-		exit 1
-	fi
+    if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+        echo "Error: DEPLOY_AWS_ACCOUNT is required"
+        exit 1
+    fi
 
     aws --version
 #    aws configure set default.region ${DEPLOY_AWS_REGION}
@@ -100,32 +100,32 @@ function ecr_login () {
     echo DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
     echo
 
-	# check environment variables
-	check_environment
+    # check environment variables
+    check_environment
 
-	login_command=$(
-		aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login
-	)
+    login_command=$(
+        aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login
+    )
 
-	if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
-		echo Error: Login command does not match DEPLOY_AWS_ACCOUNT: ${DEPLOY_AWS_ACCOUNT}
-		echo Error: Check that DEPLOY_AWS_ROLE="${DEPLOY_AWS_ROLE}" is as valid role in DEPLOY_AWS_ACCOUNT="${DEPLOY_AWS_ACCOUNT}"
-		echo login_command: ${login_command}
-		return 1
-	fi
+    if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
+        echo Error: Login command does not match DEPLOY_AWS_ACCOUNT: ${DEPLOY_AWS_ACCOUNT}
+        echo Error: Check that DEPLOY_AWS_ROLE="${DEPLOY_AWS_ROLE}" is as valid role in DEPLOY_AWS_ACCOUNT="${DEPLOY_AWS_ACCOUNT}"
+        echo login_command: ${login_command}
+        return 1
+    fi
 
      login_command=$(
-    	echo ${login_command} \
+        echo ${login_command} \
         | sed -e "s/${DEPLOY_AWS_ACCOUNT}/${DEPLOY_ECR_ACCOUNT}/"
     )
 
-	if [[ ! "$login_command" =~ "https://${DEPLOY_ECR_ACCOUNT}" ]]; then
-		echo Error: Login command does not match DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
-		echo login_command: ${login_command}
-		return 1
-	fi
+    if [[ ! "$login_command" =~ "https://${DEPLOY_ECR_ACCOUNT}" ]]; then
+        echo Error: Login command does not match DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
+        echo login_command: ${login_command}
+        return 1
+    fi
 
-	eval ${login_command}
+    eval ${login_command}
 }
 
 function ecr_tag_image () {
@@ -139,16 +139,16 @@ function ecr_tag_image () {
     echo target_tag: ${target_tag}
     echo
 
-	if [[ -z "${base_tag}" || -z "${target_tag}" ]] ; then
-		echo "Error: usage: ecr_tag_image <$base_tag> <target_tag>"
-		return 1
-	fi
+    if [[ -z "${base_tag}" || -z "${target_tag}" ]] ; then
+        echo "Error: usage: ecr_tag_image <$base_tag> <target_tag>"
+        return 1
+    fi
 
     docker tag $base_tag $target_tag
 
     if [[ "$?" == 1 ]] ; then
-    	echo "Error tagging target_tag=${target_tag}"
-    	return 1
+        echo "Error tagging target_tag=${target_tag}"
+        return 1
     fi
 
 }
@@ -162,16 +162,16 @@ function ecr_pull_image () {
     echo remote_tag: ${remote_tag}
     echo
 
-	if [[ -z "${remote_tag}" ]] ; then
-		echo "Error: usage: ecr_pull_and_retag_image <$remote_tag>"
-		return 1
-	fi
+    if [[ -z "${remote_tag}" ]] ; then
+        echo "Error: usage: ecr_pull_and_retag_image <$remote_tag>"
+        return 1
+    fi
 
     docker pull $remote_tag
 
     if [[ "$?" == 1 ]] ; then
-    	echo "Error pulling remote_tag=${remote_tag}"
-    	return 1
+        echo "Error pulling remote_tag=${remote_tag}"
+        return 1
     fi
 
 }
@@ -353,30 +353,30 @@ function docker_build {
 
     echo
     echo Building docker image
-	echo DEPLOY_DOCKERFILE: ${DEPLOY_DOCKERFILE}
-	echo DEPLOY_DOCKER_LOCAL_TAG: ${DEPLOY_DOCKER_LOCAL_TAG}
+    echo DEPLOY_DOCKERFILE: ${DEPLOY_DOCKERFILE}
+    echo DEPLOY_DOCKER_LOCAL_TAG: ${DEPLOY_DOCKER_LOCAL_TAG}
     echo
 
-	if [ -z "${DEPLOY_DOCKERFILE}" ] ; then
-		echo "Error: DEPLOY_DOCKERFILE is required"
-		return 1
-	fi
+    if [ -z "${DEPLOY_DOCKERFILE}" ] ; then
+        echo "Error: DEPLOY_DOCKERFILE is required"
+        return 1
+    fi
 
-	if [ -z "${DEPLOY_DOCKER_LOCAL_TAG}" ] ; then
-		echo "Error: DEPLOY_DOCKER_LOCAL_TAG is required"
-		return 1
-	fi
+    if [ -z "${DEPLOY_DOCKER_LOCAL_TAG}" ] ; then
+        echo "Error: DEPLOY_DOCKER_LOCAL_TAG is required"
+        return 1
+    fi
 
-	if [[ ! -z "${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT}" ]] ; then
+    if [[ ! -z "${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT}" ]] ; then
 
-		fingerprint="$( echo ${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT} | tr -d : )"
+        fingerprint="$( echo ${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT} | tr -d : )"
 
-		eval keyfile="~/.ssh/id_${fingerprint}"
+        eval keyfile="~/.ssh/id_${fingerprint}"
 
-		if [[ ! -f ${keyfile} ]] ; then
-			echo "Error: Unable to find machine user key file"
-			echo "- fingerprint: ${fingerprint}"
-			echo "- keyfile: ${keyfile}"
+        if [[ ! -f ${keyfile} ]] ; then
+            echo "Error: Unable to find machine user key file"
+            echo "- fingerprint: ${fingerprint}"
+            echo "- keyfile: ${keyfile}"
 
             eval keyfile="~/.ssh/id_circleci_github"
 
@@ -386,34 +386,34 @@ function docker_build {
                 return 1
             fi
 
-		fi
+        fi
 
-		echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
+        echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
 
-		docker build \
-			--rm=false \
-			--no-cache \
-			--build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
-			-t ${DEPLOY_DOCKER_LOCAL_TAG} \
-			-f ${DEPLOY_DOCKERFILE} \
-			.
+        docker build \
+            --rm=false \
+            --no-cache \
+            --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
+            -t ${DEPLOY_DOCKER_LOCAL_TAG} \
+            -f ${DEPLOY_DOCKERFILE} \
+            .
 
-	else
+    else
 
-		docker build \
-			--rm=false \
-			-t ${DEPLOY_DOCKER_LOCAL_TAG} \
-			-f ${DEPLOY_DOCKERFILE} \
-			.
+        docker build \
+            --rm=false \
+            -t ${DEPLOY_DOCKER_LOCAL_TAG} \
+            -f ${DEPLOY_DOCKERFILE} \
+            .
 
-	fi
+    fi
 
 }
 
 function ecs_deploy () {
 
-	# check environment variables
-	check_environment
+    # check environment variables
+    check_environment
 
     # setup aws
     aws_configure
@@ -654,7 +654,7 @@ function deploy_lambda_event {
         --profile "${DEPLOY_AWS_PROFILE}" \
         --function-name "${lambda_function_arn}" \
         --statement-id "${permission_statement_id}" \
-    
+
     # give permissions (statement id needs to be consistent string for this rule)
     aws lambda add-permission \
         --profile "${DEPLOY_AWS_PROFILE}" \
