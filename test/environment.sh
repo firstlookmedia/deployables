@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ ! -z "${DEPLOY_DEBUG}" ]] ; then
-	set -x
+    set -x
 fi
 
 export DEPLOY_APP_NAME="deployables"

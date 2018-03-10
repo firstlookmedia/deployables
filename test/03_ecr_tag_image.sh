@@ -13,9 +13,9 @@ output=$(
 )
 
 if [[ $? == 0 ]] ; then
-	echo "[ok] ecr_tag_image succeeded"
+    echo "[ok] ecr_tag_image succeeded"
 else
-	echo "[error] ecr_tag_image failed"
-	echo "$output"
-	exit 1
+    echo "[error] ecr_tag_image failed"
+    echo "$output"
+    exit 1
 fi
