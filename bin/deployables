@@ -566,7 +566,7 @@ function package_lambda () {
 
 }
 
-function copy_lambda_to_s3
+function copy_lambda_to_s3 () {
 
     aws_configure
 
