@@ -566,6 +566,35 @@ function package_lambda () {
 
 }
 
+function copy_lambda_to_s3
+
+    aws_configure
+
+    aws --profile "${DEPLOY_AWS_PROFILE}" \
+        s3 cp \
+        ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
+        s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_SHA1}.zip
+
+    if [[ "$?" != "0" ]] ; then
+        echo "Error: Failed to copy lambda zip to S3 (${DEPLOY_SHA1})"
+        exit 1
+    fi
+
+    if [ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ] ; then
+      aws --profile "${DEPLOY_AWS_PROFILE}" \
+          s3 cp \
+          ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
+          s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_LAMBDA_ZIP_VERSION}.zip
+
+      if [[ "$?" != "0" ]] ; then
+          echo "Error: Failed to copy lambda zip to S3 (${DEPLOY_LAMBDA_ZIP_VERSION})"
+          exit 1
+      fi
+
+    fi
+
+}
+
 function deploy_lambda () {
 
     # check environment variables
@@ -612,7 +641,7 @@ function deploy_lambda () {
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
             --environment "${lambda_env}" \
-            --zip-file "fileb://${DEPLOY_LAMBRA_ZIP_FULLPATH}" \
+            --zip-file "fileb://${${DEPLOY_LAMBDA_ZIP_FULLPATH}}" \
             | $JQ ".FunctionArn"
     )
 
@@ -636,7 +665,7 @@ function deploy_lambda () {
         aws lambda update-function-code \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --zip-file "fileb://${DEPLOY_LAMBRA_ZIP_FULLPATH}"
+            --zip-file "fileb://${${DEPLOY_LAMBDA_ZIP_FULLPATH}}"
 
     fi
 
