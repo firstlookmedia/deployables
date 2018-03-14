@@ -516,7 +516,7 @@ function ecs_deploy () {
 
 function package_lambda () {
 
-    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR}:-.}"
+    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
 
     DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
     mkdir -p ${DEPLOY_LAMBDA_ZIP_DIR}
