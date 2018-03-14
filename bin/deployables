@@ -61,9 +61,9 @@ function aws_configure {
     echo "Configuring AWS CLI"
     echo
 
-  if [[ -n $aws_configure_done ]]; then
-    return
-  fi
+    if [[ -n $aws_configure_done ]]; then
+      return
+    fi
 
     if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
         echo "Error: DEPLOY_AWS_ACCOUNT is required"
@@ -73,6 +73,17 @@ function aws_configure {
     aws --version
 #    aws configure set default.region ${DEPLOY_AWS_REGION}
 #    aws configure set default.output json
+
+    # circle v2 hack
+    if [ ! -d ~/.aws ] ; then
+        mkdir -p ~/.aws
+
+        cat >> $( eval -n ~/.aws/credentials ) <<EOH
+[profile ${DEPLOY_AWS_PROFILE}]
+aws_access_key_id=${AWS_ACCESS_KEY_ID}
+aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
+EOH
+    fi
 
     cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
 ## added by deployables.aws_configure()
