@@ -516,17 +516,16 @@ function ecs_deploy () {
 
 function package_lambda () {
 
+    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR}:-.}"
+
     DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
+    mkdir -p ${DEPLOY_LAMBDA_ZIP_DIR}
 
     if [ -z "${DEPLOY_LAMBDA_ZIP_FILENAME}" ] ; then
         DEPLOY_LAMBDA_ZIP_FILENAME="${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
     fi
 
     DEPLOY_LAMBDA_ZIP_FULLPATH="${DEPLOY_LAMBDA_ZIP_DIR}/${DEPLOY_LAMBDA_ZIP_FILENAME}"
-
-    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR}:-.}"
-
-    mkdir -p ${DEPLOY_LAMBDA_ZIP_DIR}
 
     # zip into deploy package
     pushd "${DEPLOY_LAMBDA_FUNCTION_SOURCE_DIR:-.}"
