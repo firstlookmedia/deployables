@@ -91,6 +91,11 @@ EOH
     aws_configure_done=1
 }
 
+function aws_test_profile {
+  aws_configure
+  aws --profile=${DEPLOY_AWS_PROFILE} s3 ls
+}
+
 function ecr_login () {
 
     echo
@@ -529,7 +534,7 @@ function package_lambda () {
 
     if [ -z "${DEPLOY_DEBUG}" ] ; then
         DEPLOY_LAMBDA_ZIP_QUIET="-q"
-    else 
+    else
         DEPLOY_LAMBDA_ZIP_QUIET=""
     fi
 
