@@ -526,6 +526,7 @@ function package_lambda () {
     fi
 
     DEPLOY_LAMBDA_ZIP_FULLPATH="${DEPLOY_LAMBDA_ZIP_DIR}/${DEPLOY_LAMBDA_ZIP_FILENAME}"
+    export DEPLOY_LAMBDA_ZIP_FULLPATH
 
     # zip into deploy package
     pushd "${DEPLOY_LAMBDA_FUNCTION_SOURCE_DIR:-.}"
