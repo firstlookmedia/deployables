@@ -527,9 +527,15 @@ function package_lambda () {
 
     DEPLOY_LAMBDA_ZIP_FULLPATH="${DEPLOY_LAMBDA_ZIP_DIR}/${DEPLOY_LAMBDA_ZIP_FILENAME}"
 
+    if [ -z "${DEPLOY_DEBUG}" ] ; then
+        DEPLOY_LAMBDA_ZIP_QUIET="-q"
+    else 
+        DEPLOY_LAMBDA_ZIP_QUIET=""
+    fi
+
     # zip into deploy package
     pushd "${DEPLOY_LAMBDA_FUNCTION_SOURCE_DIR:-.}"
-    zip -q -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} ${DEPLOY_LAMBDA_SOURCE_DIR} -x "*.git*"
+    zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} ${DEPLOY_LAMBDA_SOURCE_DIR} -x "*.git*"
     popd
 
     if [[ "$?" != "0" ]] ; then
