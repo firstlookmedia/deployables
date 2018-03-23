@@ -17,7 +17,7 @@ fi
 
 # circle v2 hack: source env file
 echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
-if [[ ! -z "${DEPLOY_ENV_FILE:-BASH_ENV}" ]] ; then
+if [[ ! -z "${DEPLOY_ENV_FILE:-$BASH_ENV}" ]] ; then
   source $DEPLOY_ENV_FILE
 fi
 
@@ -640,7 +640,7 @@ function lambda_update_from_s3 () {
     lambda_function_sha256=$( \
         aws lambda update-function-code \
             --profile "${DEPLOY_AWS_PROFILE}" \
-            --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-DEPLOY_LAMBDA_FUNCTION_NAME}" \
+            --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
             --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
         | $JQ ".CodeSha256"
@@ -656,7 +656,7 @@ function lambda_update_from_s3 () {
       lambda_function_version=$( \
         aws lambda publish-version \
             --profile "${DEPLOY_AWS_PROFILE}" \
-            --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-DEPLOY_LAMBDA_FUNCTION_NAME}" \
+            --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --description "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
             --code-sha-256 "${lambda_function_sha256}" \
         | $JQ ".Version"
