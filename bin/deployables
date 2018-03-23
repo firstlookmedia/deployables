@@ -6,7 +6,7 @@
 ## configure debugging
 ##
 
-if [ ! -z "${DEPLOY_DEBUG}" ] ; then
+if [[ ! -z "${DEPLOY_DEBUG}" ]] ; then
     set -x
 fi
 
@@ -43,12 +43,12 @@ JQ="jq --raw-output --exit-status"
 
 function check_environment {
 
-    if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+    if [[ -z "${DEPLOY_AWS_ACCOUNT}" ]] ; then
         echo "Error: DEPLOY_AWS_ACCOUNT is required"
         exit 1
     fi
 
-    if [ -z "${DEPLOY_ECR_ACCOUNT}" ] ; then
+    if [[ -z "${DEPLOY_ECR_ACCOUNT}" ]] ; then
         echo "Error: DEPLOY_ECR_ACCOUNT is required"
         exit 1
     fi
@@ -65,7 +65,7 @@ function aws_configure {
       return
     fi
 
-    if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+    if [[ -z "${DEPLOY_AWS_ACCOUNT}" ]] ; then
         echo "Error: DEPLOY_AWS_ACCOUNT is required"
         exit 1
     fi
@@ -75,7 +75,7 @@ function aws_configure {
 #    aws configure set default.output json
 
     # circle v2 hack
-    if [ ! -d ~/.aws ] ; then
+    if [[ ! -d ~/.aws ]] ; then
         mkdir -p ~/.aws
 
         cat >> $( eval echo -n ~/.aws/credentials ) <<EOH
@@ -208,7 +208,7 @@ function ecr_push_image () {
 
     docker push $image
 
-    if [ $? != 0 ] ; then
+    if [[ $? != 0 ]] ; then
         echo "Error: Unable to push image, ${image}"
         exit 1
     fi
@@ -226,7 +226,7 @@ function ecs_deploy_task () {
     echo subfamily: ${subfamily}
     echo
 
-    if [ -z "$subfamily" ] ; then
+    if [[ -z "$subfamily" ]] ; then
         family="${DEPLOY_APP_NAME}"
         service="${DEPLOY_APP_NAME}"
     else
@@ -284,7 +284,7 @@ function ecs_deploy_task () {
         )
     fi
 
-    if [ -z "$revision_target" ] ; then
+    if [[ -z "$revision_target" ]] ; then
         echo "Failed to register task definition"
         exit 1
     fi
@@ -305,7 +305,7 @@ function ecs_deploy_task () {
             | $JQ '.service.taskDefinition' \
         )
 
-    if [ "$revision_target" != "$revision_actual" ] ; then
+    if [[ "$revision_target" != "$revision_actual" ]] ; then
         echo "Error updating service. Target does not match actual: ${revision_target} != ${revision_actual} "
         exit 1
     fi
@@ -321,7 +321,7 @@ function ecs_verify_deploy () {
 
     local subfamily="$1"
 
-    if [ -z "$subfamily" ] ; then
+    if [[ -z "$subfamily" ]] ; then
         family="${DEPLOY_APP_NAME}"
         service="${DEPLOY_APP_NAME}"
     else
@@ -349,7 +349,7 @@ function ecs_verify_deploy () {
                 | $JQ ".services[0].deployments | .[] | select(.taskDefinition != \"$revision_target\") | .taskDefinition" \
             )
 
-        if [ -z "$revision_deployed" ] ; then
+        if [[ -z "$revision_deployed" ]] ; then
             echo "Success: Deployed!"
             return 0
         fi
@@ -378,12 +378,12 @@ function docker_build {
     echo DEPLOY_DOCKER_LOCAL_TAG: ${DEPLOY_DOCKER_LOCAL_TAG}
     echo
 
-    if [ -z "${DEPLOY_DOCKERFILE}" ] ; then
+    if [[ -z "${DEPLOY_DOCKERFILE}" ]] ; then
         echo "Error: DEPLOY_DOCKERFILE is required"
         return 1
     fi
 
-    if [ -z "${DEPLOY_DOCKER_LOCAL_TAG}" ] ; then
+    if [[ -z "${DEPLOY_DOCKER_LOCAL_TAG}" ]] ; then
         echo "Error: DEPLOY_DOCKER_LOCAL_TAG is required"
         return 1
     fi
@@ -444,7 +444,7 @@ function ecs_deploy () {
     # push images
     #
 
-    if [ ! -z "${DEPLOY_RETAG_AND_PUSH}" ] ; then
+    if [[ ! -z "${DEPLOY_RETAG_AND_PUSH}" ]] ; then
 
         remote_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_REMOTE_TAG}"
         target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_TARGET_TAG}"
@@ -483,7 +483,7 @@ function ecs_deploy () {
         ecr_push_image \
             $target_tag
 
-        if [ ! -z "$DEPLOY_PUSH_SECONDARY_TAG" ] ; then
+        if [[ ! -z "$DEPLOY_PUSH_SECONDARY_TAG" ]] ; then
 
             secondary_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_PUSH_SECONDARY_TAG}"
 
@@ -504,7 +504,7 @@ function ecs_deploy () {
 
     fi
 
-    if [ -z "${DEPLOY_IMAGE}" ] ; then
+    if [[ -z "${DEPLOY_IMAGE}" ]] ; then
         echo "Error: deploy image is undefined, DEPLOY_IMAGE=${DEPLOY_IMAGE}"
         exit 1
     fi
@@ -514,7 +514,7 @@ function ecs_deploy () {
     #
 
     # deploy all the tasks first...
-    if [ -z "$DEPLOY_ECS_FAMILIES" ] ; then
+    if [[ -z "$DEPLOY_ECS_FAMILIES" ]] ; then
 
         ecs_deploy_task $DEPLOY_IMAGE
         ecs_verify_deploy
@@ -539,18 +539,18 @@ function lambda_package_zip () {
 
     DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
 
-    if [ -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ] ; then
+    if [[ -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
         DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
         mkdir -p ${DEPLOY_LAMBDA_ZIP_DIR}
 
-        if [ -z "${DEPLOY_LAMBDA_ZIP_FILENAME}" ] ; then
+        if [[ -z "${DEPLOY_LAMBDA_ZIP_FILENAME}" ]] ; then
             DEPLOY_LAMBDA_ZIP_FILENAME="${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
         fi
 
         DEPLOY_LAMBDA_ZIP_FULLPATH="${DEPLOY_LAMBDA_ZIP_DIR}/${DEPLOY_LAMBDA_ZIP_FILENAME}"
     fi
 
-    if [ -z "${DEPLOY_DEBUG}" ] ; then
+    if [[ -z "${DEPLOY_DEBUG}" ]] ; then
         DEPLOY_LAMBDA_ZIP_QUIET="-q"
     else
         DEPLOY_LAMBDA_ZIP_QUIET=""
@@ -573,7 +573,7 @@ function lambda_copy_zip_to_s3 () {
     aws_configure
 
     # copy to version-specific or commit-hash key
-    if [ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ] ; then
+    if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
         aws --profile "${DEPLOY_AWS_PROFILE}" \
             s3 cp \
             ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
@@ -584,7 +584,7 @@ function lambda_copy_zip_to_s3 () {
             exit 1
         fi
 
-    elif [ ! -z "${DEPLOY_SHA1}" ] ; then
+    elif [[ ! -z "${DEPLOY_SHA1}" ]] ; then
         aws --profile "${DEPLOY_AWS_PROFILE}" \
             s3 cp \
             ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
@@ -612,17 +612,17 @@ function lambda_copy_zip_to_s3 () {
 function lambda_update_from_s3 () {
 
     # check environment variables
-    if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+    if [[ -z "${DEPLOY_AWS_ACCOUNT}" ]] ; then
         echo "Error: DEPLOY_AWS_ACCOUNT is required"
         exit 1
     fi
 
-    if [ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ] ; then
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ]] ; then
         echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
         exit 1
     fi
 
-    if [ -z "${DEPLOY_LAMBDA_S3_BUCKET}" ] ; then
+    if [[ -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
         echo "Error: DEPLOY_LAMBDA_S3_BUCKET is required"
         exit 1
     fi
@@ -645,22 +645,31 @@ function lambda_update_from_s3 () {
       exit 1
     fi
 
+    if [[
+publish-version
+--function-name <value>
+[--code-sha-256 <value>]
+[--description <value>]
+[--revision-id <value>]
+[--cli-input-json <value>]
+[--generate-cli-skeleton <value>]
+
 }
 
 function lambda_deploy () {
 
     # check environment variables
-    if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
+    if [[ -z "${DEPLOY_AWS_ACCOUNT}" ]] ; then
         echo "Error: DEPLOY_AWS_ACCOUNT is required"
         exit 1
     fi
 
-    if [ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ] ; then
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ]] ; then
         echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
         exit 1
     fi
 
-    if [ -z "${DEPLOY_LAMBDA_FUNCTION_ROLE}" ] ; then
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_ROLE}" ]] ; then
         echo "Error: DEPLOY_LAMBDA_FUNCTION_ROLE is required"
         exit 1
     fi
@@ -753,7 +762,7 @@ function lambda_deploy_event () {
     # the aws cli is stupid
     input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
 
-    if [ -z "${lambda_function_arn}" ] ; then
+    if [[ -z "${lambda_function_arn}" ]] ; then
         echo "Error: DEPLOY_LAMBDA_FUNCTION_ARN or passing a 'lambda_function_arn' is required for deploy_lambda_event."
         exit 1
     fi
@@ -819,7 +828,7 @@ function deploy_lambda_event () {
 
 # circle v2 hack:  source env file
 echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
-if [ ! -z "${DEPLOY_ENV_FILE}" ] ; then
+if [[ ! -z "${DEPLOY_ENV_FILE}" ]] ; then
   source $DEPLOY_ENV_FILE
 fi
 
