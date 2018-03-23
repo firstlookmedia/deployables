@@ -631,7 +631,7 @@ function lambda_update_from_s3 () {
     aws_configure
 
     # update lambda function
-    lambda_function_revid=$( \
+    lambda_function_sha256=$( \
         aws lambda update-function-code \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-DEPLOY_LAMBDA_FUNCTION_NAME}" \
@@ -639,11 +639,11 @@ function lambda_update_from_s3 () {
             --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
     )
 
-    echo lambda_function_revid: $lambda_function_revid
+    echo lambda_function_sha256: $lambda_function_sha256
 
-    lambda_function_revid=$( echo $lambda_function_revid | $JQ ".RevisionId" )
+    lambda_function_sha256=$( echo $lambda_function_sha256 | $JQ ".CodeSha256" )
 
-    if [[ -z "${lambda_function_revid}" ]] ; then
+    if [[ -z "${lambda_function_sha256}" ]] ; then
       echo "Error: Failed to deploy lambda function"
       exit 1
     fi
@@ -656,7 +656,7 @@ function lambda_update_from_s3 () {
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --description "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
-            --revision-id "${lambda_function_revid}" \
+            --code-sha-256 "${lambda_function_sha256}" \
         | $JQ ".Version"
       )
 
