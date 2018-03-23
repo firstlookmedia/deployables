@@ -16,6 +16,7 @@ fi
 ##
 
 # circle v2 hack: source env file
+echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
 if [[ ! -z "${DEPLOY_ENV_FILE}" ]] ; then
   source $DEPLOY_ENV_FILE
 fi
