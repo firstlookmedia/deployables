@@ -15,6 +15,12 @@ fi
 ## environment variables
 ##
 
+# circle v2 hack: source env file
+echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
+if [[ ! -z "${DEPLOY_ENV_FILE:-BASH_ENV}" ]] ; then
+  source $DEPLOY_ENV_FILE
+fi
+
 #
 # optional
 #
@@ -557,8 +563,8 @@ function lambda_package_zip () {
     fi
 
     # zip into deploy package
-    pushd "${DEPLOY_LAMBDA_FUNCTION_SOURCE_DIR:-.}"
-    zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} ${DEPLOY_LAMBDA_SOURCE_DIR} -x "*.git*"
+    pushd "${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+    zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} . -x "*.git*"
     popd
 
     if [[ "$?" != "0" ]] ; then
@@ -636,18 +642,14 @@ function lambda_update_from_s3 () {
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
-            --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
+            --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
+        | $JQ ".CodeSha256"
     )
 
-    echo lambda_function_sha256: $lambda_function_sha256
-
-    lambda_function_sha256=$( echo $lambda_function_sha256 | $JQ ".CodeSha256" )
-
     if [[ -z "${lambda_function_sha256}" ]] ; then
-      echo "Error: Failed to deploy lambda function"
+      echo "Error: Failed to update lambda function"
       exit 1
     fi
-
 
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
 
@@ -838,12 +840,6 @@ function deploy_lambda_event () {
 ##
 ## MAIN
 ##
-
-# circle v2 hack:  source env file
-echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
-if [[ ! -z "${DEPLOY_ENV_FILE}" ]] ; then
-  source $DEPLOY_ENV_FILE
-fi
 
 # call arguments verbatim:
 $@
