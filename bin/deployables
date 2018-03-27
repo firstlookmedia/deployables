@@ -109,7 +109,7 @@ function ecr_login () {
 
 	# Newer versions of docker don't work well with the default login args to aws-cli
 	email=""
-	if [[ $(docker --version) =~ 17\. ]]; then
+	if [[ $(docker --version) =~ 1(7|8)\. ]]; then
 		echo "Adding email remove flag"
 		email="--no-include-email"
 	fi
