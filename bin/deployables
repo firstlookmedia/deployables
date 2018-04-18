@@ -118,6 +118,11 @@ function aws_test_profile {
   aws --profile=${DEPLOY_AWS_PROFILE} s3 ls
 }
 
+function aws_run () {
+  aws_configure
+  aws --profile=${DEPLOY_AWS_PROFILE} ${@:2}
+}
+
 function ecr_login () {
 
     echo
