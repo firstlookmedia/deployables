@@ -703,6 +703,7 @@ function lambda_deploy () {
     lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
     lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
     lambda_timeout="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
+    lambda_memory_size="${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE:-128}"
 
     lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
@@ -717,6 +718,7 @@ function lambda_deploy () {
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
             --timeout "${lambda_timeout}" \
+            --memory-size "${lambda_memory_size}" \
             --role "${lambda_role}" \
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
@@ -734,6 +736,7 @@ function lambda_deploy () {
                 --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
                 --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
                 --timeout "${lambda_timeout}" \
+                --memory-size "${lambda_memory_size}" \
                 --role "${lambda_role}" \
                 --handler "${lamdba_handler}" \
                 --environment "${lambda_env}" \
