@@ -120,7 +120,7 @@ function aws_test_profile {
 
 function aws_run () {
   aws_configure
-  aws --profile=${DEPLOY_AWS_PROFILE} ${@:2}
+  aws --profile=${DEPLOY_AWS_PROFILE} ${@:1}
 }
 
 function ecr_login () {
