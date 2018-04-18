@@ -93,6 +93,16 @@ EOH
   aws_configure_done=1
 }
 
+function aws_test_profile {
+  aws_configure
+  aws --profile=${DEPLOY_AWS_PROFILE} s3 ls
+}
+
+function aws_run () {
+  aws_configure
+  aws --profile=${DEPLOY_AWS_PROFILE} ${@:1}
+}
+
 function ecr_login () {
 
   echo
@@ -573,32 +583,30 @@ function ecs_deploy () {
 # lamdba
 #
 
-function deploy_lambda () {
+function lambda_package_zip () {
 
-  # check environment variables
-  if [ -z "${DEPLOY_AWS_ACCOUNT}" ] ; then
-    echo "Error: DEPLOY_AWS_ACCOUNT is required"
-    exit 1
+  DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+
+  if [[ -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
+    DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
+    mkdir -p ${DEPLOY_LAMBDA_ZIP_DIR}
+
+    if [[ -z "${DEPLOY_LAMBDA_ZIP_FILENAME}" ]] ; then
+      DEPLOY_LAMBDA_ZIP_FILENAME="${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
+    fi
+
+    DEPLOY_LAMBDA_ZIP_FULLPATH="${DEPLOY_LAMBDA_ZIP_DIR}/${DEPLOY_LAMBDA_ZIP_FILENAME}"
   fi
 
-  if [ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ] ; then
-    echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
-    exit 1
+  if [[ -z "${DEPLOY_DEBUG}" ]] ; then
+    DEPLOY_LAMBDA_ZIP_QUIET="-q"
+  else
+    DEPLOY_LAMBDA_ZIP_QUIET=""
   fi
 
-  if [ -z "${DEPLOY_LAMBDA_FUNCTION_ROLE}" ] ; then
-    echo "Error: DEPLOY_LAMBDA_FUNCTION_ROLE is required"
-    exit 1
-  fi
-
-  # setup aws
-  aws_configure
-
-  #
   # zip into deploy package
-  #
-  pushd "${DEPLOY_LAMBDA_FUNCTION_ZIP_DIR:-.}"
-  zip -q -r ../$DEPLOY_LAMBDA_FUNCTION_NAME . -x "*.git*"
+  pushd "${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+  zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} . -x "*.git*"
   popd
 
   if [[ "$?" != "0" ]] ; then
@@ -606,10 +614,138 @@ function deploy_lambda () {
     exit 1
   fi
 
+}
+
+function lambda_copy_zip_to_s3 () {
+
+  aws_configure
+
+  # copy to version-specific or commit-hash key
+  if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
+    aws --profile "${DEPLOY_AWS_PROFILE}" \
+      s3 cp \
+      ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
+      s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_LAMBDA_ZIP_VERSION}.zip
+
+    if [[ "$?" != "0" ]] ; then
+      echo "Error: Failed to copy lambda zip to S3 (${DEPLOY_LAMBDA_ZIP_VERSION})"
+      exit 1
+    fi
+
+  elif [[ ! -z "${DEPLOY_SHA1}" ]] ; then
+    aws --profile "${DEPLOY_AWS_PROFILE}" \
+      s3 cp \
+      ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
+      s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_SHA1}.zip
+
+    if [[ "$?" != "0" ]] ; then
+      echo "Error: Failed to copy lambda zip to S3 (${DEPLOY_SHA1})"
+      exit 1
+    fi
+  fi
+
+  # copy to latest key
+  aws --profile "${DEPLOY_AWS_PROFILE}" \
+    s3 cp \
+    ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
+    s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip
+
+  if [[ "$?" != "0" ]] ; then
+    echo "Error: Failed to copy lambda zip to S3 (latest)"
+    exit 1
+  fi
+
+}
+
+function lambda_update_from_s3 () {
+
+  # check environment variables
+  if [[ -z "${DEPLOY_AWS_ACCOUNT}" ]] ; then
+    echo "Error: DEPLOY_AWS_ACCOUNT is required"
+    exit 1
+  fi
+
+  if [[ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ]] ; then
+    echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
+    exit 1
+  fi
+
+  if [[ -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
+    echo "Error: DEPLOY_LAMBDA_S3_BUCKET is required"
+    exit 1
+  fi
+
+  # setup aws
+  aws_configure
+
+  # update lambda function
+  lambda_function_sha256=$( \
+    aws lambda update-function-code \
+    --profile "${DEPLOY_AWS_PROFILE}" \
+    --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
+    --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
+    --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
+    | $JQ ".CodeSha256"
+  )
+
+  if [[ -z "${lambda_function_sha256}" ]] ; then
+    echo "Error: Failed to update lambda function"
+    exit 1
+  fi
+
+  if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
+
+    lambda_function_version=$( \
+      aws lambda publish-version \
+      --profile "${DEPLOY_AWS_PROFILE}" \
+      --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
+      --description "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
+      --code-sha-256 "${lambda_function_sha256}" \
+      | $JQ ".Version"
+    )
+
+    if [[ -z "${lambda_function_version}" ]] ; then
+      echo "Error: Failed to publish lambda version"
+      exit 1
+    fi
+
+  fi
+
+}
+
+function lambda_deploy () {
+
+  # check environment variables
+  if [[ -z "${DEPLOY_AWS_ACCOUNT}" ]] ; then
+    echo "Error: DEPLOY_AWS_ACCOUNT is required"
+    exit 1
+  fi
+
+  if [[ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ]] ; then
+    echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
+    exit 1
+  fi
+
+  if [[ -z "${DEPLOY_LAMBDA_FUNCTION_ROLE}" ]] ; then
+    echo "Error: DEPLOY_LAMBDA_FUNCTION_ROLE is required"
+    exit 1
+  fi
+
+  # setup aws
+  aws_configure
+
+  # zip the
+  if [[ ! -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] && [[ -f "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
+    echo "Skipping ... Zip already exists at ${DEPLOY_LAMBDA_ZIP_FULLPATH}"
+  else
+    lambda_package_zip
+  fi
+
   lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs4.3}"
   lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
   lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
   lambda_timeout="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
+  lambda_memory_size="${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE:-128}"
 
   lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
@@ -624,11 +760,12 @@ function deploy_lambda () {
     --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
     --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
     --timeout "${lambda_timeout}" \
+    --memory-size "${lambda_memory_size}" \
     --role "${lambda_role}" \
     --handler "${lamdba_handler}" \
     --runtime "${lamdba_runtime}" \
     --environment "${lambda_env}" \
-    --zip-file "fileb://../${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
+    --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
     | $JQ ".FunctionArn"
   )
 
@@ -641,6 +778,7 @@ function deploy_lambda () {
       --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
       --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
       --timeout "${lambda_timeout}" \
+      --memory-size "${lambda_memory_size}" \
       --role "${lambda_role}" \
       --handler "${lamdba_handler}" \
       --environment "${lambda_env}" \
@@ -652,7 +790,7 @@ function deploy_lambda () {
     aws lambda update-function-code \
       --profile "${DEPLOY_AWS_PROFILE}" \
       --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-      --zip-file "fileb://../${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
+      --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}"
 
   fi
 
@@ -666,7 +804,7 @@ function deploy_lambda () {
     $lambda_function_arn
 }
 
-function deploy_lambda_event {
+function lambda_deploy_event () {
   if [[ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
     echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying event."
     return
@@ -688,7 +826,7 @@ function deploy_lambda_event {
   # the aws cli is stupid
   input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
 
-  if [ -z "${lambda_function_arn}" ] ; then
+  if [[ -z "${lambda_function_arn}" ]] ; then
     echo "Error: DEPLOY_LAMBDA_FUNCTION_ARN or passing a 'lambda_function_arn' is required for deploy_lambda_event."
     exit 1
   fi
@@ -736,6 +874,16 @@ function deploy_lambda_event {
     echo "Error: Failed associating event rule and lambda function"
     exit 1
   fi
+}
+
+function deploy_lambda () {
+  echo "Deprecated: Please use lambda_deploy()"
+  deploy_lambda
+}
+
+function deploy_lambda_event () {
+  echo "Deprecated: Please use lambda_deploy_event()"
+  lambda_deploy_event
 }
 
 ##
