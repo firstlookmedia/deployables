@@ -762,13 +762,28 @@ function lambda_deploy () {
         exit 1
     fi
 
-    deploy_lambda_event \
-        $DEPLOY_LAMBDA_EVENT_BASENAME \
-        $lambda_function_arn
+    if [[ ! -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
+      DEPLOY_LAMBDA_FUNCTION_ARN="${lambda_function_arn}"
+      DEPLOY_LAMBDA_EVENT_BASENAME="${DEPLOY_LAMBDA_EVENT_BASENAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
+      lambda_deploy_event
+    fi
 }
 
 function lambda_deploy_event () {
+
+    lambda_event_basename="${1:-$DEPLOY_LAMBDA_EVENT_BASENAME}"
+
+    if [[ -z "${lambda_event_basename}" ]] ; then
+        echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying event."
+        return
+    fi
+
     if [[ -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
+        echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying event."
+        return
+    fi
+
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_ARN}" ]] ; then
         echo "Info: No DEPLOY_LAMBDA_EVENT_RULE, not deploying event."
         return
     fi
@@ -780,22 +795,20 @@ function lambda_deploy_event () {
 
     aws_configure
 
-    lambda_event_basename="${1:-$DEPLOY_LAMBDA_EVENT_BASENAME}"
-    lambda_function_arn="${2:-$DEPLOY_LAMBDA_FUNCTION_ARN}"
     event_rule_name="${lambda_event_basename}_rule"
     permission_statement_id="${lambda_event_basename}_permission"
 
-    # this json is a sub-json to something else, so we need to escape the quotes because
-    # the aws cli is stupid
+    # this json is a sub-json to something else, so we need to escape the quotes
+    # because the aws cli is stupid
     input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
 
     if [[ -z "${lambda_function_arn}" ]] ; then
-        echo "Error: DEPLOY_LAMBDA_FUNCTION_ARN or passing a 'lambda_function_arn' is required for deploy_lambda_event."
+        echo "Error: DEPLOY_LAMBDA_FUNCTION_ARN or passing a 'lambda_function_arn' is required for lambda_deploy_event."
         exit 1
     fi
 
     if [[ -z "${lambda_event_basename}" ]] ; then
-        echo "Error: DEPLOY_LAMBDA_EVENT_BASENAME or passing the basename is required for deploy_lambda_event."
+        echo "Error: DEPLOY_LAMBDA_EVENT_BASENAME or passing the basename is required for lambda_deploy_event."
         exit 1
     fi
 
