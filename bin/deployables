@@ -693,7 +693,7 @@ function lambda_deploy () {
     aws_configure
 
     # zip the
-    if [[ ! -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] && [[ -f "/${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
+    if [[ ! -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] && [[ -f "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
         echo "Skipping ... Zip already exists at ${DEPLOY_LAMBDA_ZIP_FULLPATH}"
     else
         lambda_package_zip
@@ -721,7 +721,7 @@ function lambda_deploy () {
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
             --environment "${lambda_env}" \
-            --zip-file "fileb://${${DEPLOY_LAMBDA_ZIP_FULLPATH}}" \
+            --zip-file "fileb://../${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
             | $JQ ".FunctionArn"
     )
 
@@ -745,7 +745,7 @@ function lambda_deploy () {
         aws lambda update-function-code \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --zip-file "fileb://${${DEPLOY_LAMBDA_ZIP_FULLPATH}}"
+            --zip-file "fileb://../${DEPLOY_LAMBDA_ZIP_FULLPATH}"
 
     fi
 
