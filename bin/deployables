@@ -693,7 +693,11 @@ function lambda_deploy () {
     aws_configure
 
     # zip the
-    lambda_package_zip
+    if [[ ! -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] && [[ -f "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
+        echo "Skipping ... Zip already exists at ${DEPLOY_LAMBDA_ZIP_FULLPATH}"
+    else
+        lambda_package_zip
+    fi
 
     lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs4.3}"
     lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
