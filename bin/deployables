@@ -133,10 +133,14 @@ function ecr_login () {
     return 1
   fi
 
+  echo ${login_command}
+
   login_command=$(
     echo ${login_command} \
     | sed "s/${DEPLOY_AWS_ACCOUNT}/${DEPLOY_ECR_ACCOUNT}/"
   )
+
+  echo ${login_command}
 
   if [[ ! "$login_command" =~ "https://${DEPLOY_ECR_ACCOUNT}" ]]; then
     echo Error: Login command does not match DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
