@@ -271,9 +271,11 @@ function ecs_deploy_task () {
 
     task_def=$( \
         DEPLOY_IMAGE_NAME=${image} \
+        DEPLOY_IMAGE_TAG=${image_tag} \
         DEPLOY_ECS_CLUSTER_NAME=${DEPLOY_ECS_CLUSTER_NAME} \
         DEPLOY_SUBFAMILY=${subfamily} \
         DEPLOY_AWS_REGION=${DEPLOY_AWS_REGION} \
+        DEPLOY_APP_NAME=${family} \
         ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
     )
 
