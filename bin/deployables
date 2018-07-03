@@ -117,7 +117,7 @@ function ecr_login () {
 
   # Newer versions of docker don't work well with the default login args to aws-cli
   email=""
-  if [[ $(docker --version) =~ 1(7|8)\. ]]; then
+  if [[ $(docker --version | grep -i version) =~ 1(7|8)\. ]]; then
     echo "Adding email remove flag"
     email="--no-include-email"
   fi
@@ -126,6 +126,8 @@ function ecr_login () {
     aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login $email
   )
 
+  echo $login_command
+
   if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
     echo Error: Login command does not match DEPLOY_AWS_ACCOUNT: ${DEPLOY_AWS_ACCOUNT}
     echo Error: Check that DEPLOY_AWS_ROLE="${DEPLOY_AWS_ROLE}" is as valid role in DEPLOY_AWS_ACCOUNT="${DEPLOY_AWS_ACCOUNT}"
@@ -133,14 +135,10 @@ function ecr_login () {
     return 1
   fi
 
-  echo ${login_command}
-
   login_command=$(
     echo ${login_command} \
     | sed "s/${DEPLOY_AWS_ACCOUNT}/${DEPLOY_ECR_ACCOUNT}/"
   )
-
-  echo ${login_command}
 
   if [[ ! "$login_command" =~ "https://${DEPLOY_ECR_ACCOUNT}" ]]; then
     echo Error: Login command does not match DEPLOY_ECR_ACCOUNT: ${DEPLOY_ECR_ACCOUNT}
