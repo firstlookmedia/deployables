@@ -422,6 +422,7 @@ function docker_build {
       --rm=false \
       --no-cache \
       --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
+      --build-arg NPM_TOKEN=$NPM_TOKEN \
       -t ${DEPLOY_DOCKER_LOCAL_TAG} \
       -f ${DEPLOY_DOCKERFILE} \
       .
@@ -430,6 +431,7 @@ function docker_build {
 
     docker build \
       --rm=false \
+      --build-arg NPM_TOKEN=$NPM_TOKEN \
       -t ${DEPLOY_DOCKER_LOCAL_TAG} \
       -f ${DEPLOY_DOCKERFILE} \
       .
