@@ -105,7 +105,6 @@ function aws_run () {
 }
 
 function ecr_login () {
-
   echo
   echo Logging in to ECR
   echo DEPLOY_AWS_PROFILE: ${DEPLOY_AWS_PROFILE}
