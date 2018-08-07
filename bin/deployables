@@ -6,7 +6,7 @@
 ## configure debugging
 ##
 
-if [ ! -z "${DEPLOY_DEBUG}" ] ; then
+if [[ ! -z "${DEPLOY_DEBUG}" ]] ; then
   set -x
 fi
 
@@ -15,6 +15,11 @@ fi
 ## environment variables
 ##
 
+# circle v2 hack: source env file
+if [[ ! -z "${DEPLOY_ENV_FILE}" ]] ; then
+  echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
+  source $DEPLOY_ENV_FILE
+fi
 #
 # optional
 #
@@ -74,8 +79,18 @@ function aws_configure {
   aws --version
 
   mkdir -p $(dirname $( eval echo -n $DEPLOY_AWS_CONFIG ))
+    if [[ ! -d ~/.aws ]] ; then
+        mkdir -p ~/.aws
+
+        cat >> $( eval echo -n ~/.aws/credentials ) <<EOH
+[${DEPLOY_AWS_SOURCE_PROFILE}]
+aws_access_key_id=${AWS_ACCESS_KEY_ID}
+aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
+EOH
 
   cat > $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
+[profile ${DEPLOY_AWS_SOURCE_PROFILE}]
+region=${DEPLOY_AWS_REGION}
 ## added by deployables.aws_configure()
 [profile ${DEPLOY_AWS_PROFILE}]
 role_arn = arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_AWS_ROLE}
@@ -889,7 +904,7 @@ function lambda_deploy_event () {
 
 function deploy_lambda () {
   echo "Deprecated: Please use lambda_deploy()"
-  deploy_lambda
+  lambda_deploy
 }
 
 function deploy_lambda_event () {
