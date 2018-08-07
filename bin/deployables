@@ -79,10 +79,9 @@ function aws_configure {
   aws --version
 
   mkdir -p $(dirname $( eval echo -n $DEPLOY_AWS_CONFIG ))
-    if [[ ! -d ~/.aws ]] ; then
-        mkdir -p ~/.aws
+  mkdir -p ~/.aws
 
-        cat >> $( eval echo -n ~/.aws/credentials ) <<EOH
+  cat >> $( eval echo -n ~/.aws/credentials ) <<EOH
 [${DEPLOY_AWS_SOURCE_PROFILE}]
 aws_access_key_id=${AWS_ACCESS_KEY_ID}
 aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
