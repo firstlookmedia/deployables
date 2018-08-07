@@ -35,6 +35,7 @@ DEPLOY_SHA1="${DEPLOY_SHA1:-$CIRCLE_SHA1}"
 # more bash-friendly output for jq
 JQ="jq --raw-output --exit-status"
 
+DEPLOY_CURRENT_TIME="$(date +%Y%m%d)"
 
 
 ##
@@ -505,13 +506,13 @@ function _deploy_image () {
 }
 
 function _get_target_image_tag() {
-    target_tag="$( date +%Y%m%d-%H%M%S )-${DEPLOY_SHA1}"
+  local local_target_tag="${DEPLOY_CURRENT_TIME}-${DEPLOY_SHA1}"
 
-    if [ ! -z "$DEPLOY_ADD_ENV_TO_TAG" ]; then
-      target_tag="${target_tag}-${FLM_ENV}"
-    fi
+  if [ ! -z "$DEPLOY_ADD_ENV_TO_TAG" ]; then
+    local_target_tag="${local_target_tag}-${FLM_ENV}"
+  fi
 
-    echo $target_tag
+  echo $local_target_tag
 }
 
 
