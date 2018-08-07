@@ -469,7 +469,7 @@ function _deploy_image () {
 
 
   else
-    target_tag=$(_get_target_image_tag)
+    target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:$(_get_target_image_tag)"
 
     echo
     echo Pushing primary tag
@@ -505,7 +505,7 @@ function _deploy_image () {
 }
 
 function _get_target_image_tag() {
-    target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:$( date +%Y%m%d-%H%M%S )-${DEPLOY_SHA1}"
+    target_tag="$( date +%Y%m%d-%H%M%S )-${DEPLOY_SHA1}"
 
     if [ ! -z "$DEPLOY_ADD_ENV_TO_TAG" ]; then
       target_tag="${target_tag}-${FLM_ENV}"
