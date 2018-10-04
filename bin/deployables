@@ -280,7 +280,7 @@ function ecs_deploy_task () {
     ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
   )
 
-  if [[ -z "${DEPLOY_YAHTZEE_VARS}" ]]; then
+  if [[ -n "${DEPLOY_YAHTZEE_VARS}" ]]; then
     echo "Task Def before Yahtzee: $(echo $task_def | $JQ .)"
 
     new_task_def=$( \
