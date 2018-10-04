@@ -10,7 +10,6 @@ if [[ ! -z "${DEPLOY_DEBUG}" ]] ; then
   set -x
 fi
 
-
 ##
 ## environment variables
 ##
@@ -280,6 +279,18 @@ function ecs_deploy_task () {
     DEPLOY_APP_NAME=${family} \
     ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
   )
+
+  if [[ -z "${DEPLOY_YAHTZEE_VARS}" ]]; then
+    echo "Task Def before Yahtzee: $(echo $task_def | $JQ .)"
+
+    new_task_def=$( \
+      echo ${task_def} | \
+      curl -sL -d @- -H "cookie: auth_token=${DEPLOY_YAHTZEE_AUTH_TOKEN}" \
+      "https://${DEPLOY_YAHTZEE_DOMAIN}/services/${DEPLOY_ECS_CLUSTER_NAME}/${DEPLOY_APP_NAME}/vars/json"
+    )
+
+    task_def="${new_task_def}"
+  fi
 
   echo "Deploying Task Def: $(echo $task_def | $JQ .)"
 
