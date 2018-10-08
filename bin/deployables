@@ -435,27 +435,15 @@ function docker_build {
     fi
 
     echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
-
-    docker build \
-      --rm=false \
-      --no-cache \
-      --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
-      --build-arg NPM_TOKEN=$NPM_TOKEN \
-      -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-      -f ${DEPLOY_DOCKERFILE} \
-      .
-
-  else
-
-    docker build \
-      --rm=false \
-      --build-arg NPM_TOKEN=$NPM_TOKEN \
-      -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-      -f ${DEPLOY_DOCKERFILE} \
-      .
-
   fi
 
+  docker build \
+    --rm=false \
+    --build-arg NPM_TOKEN=$NPM_TOKEN \
+     ${keyfile:+ --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )"} \
+    -t ${DEPLOY_DOCKER_LOCAL_TAG} \
+    -f ${DEPLOY_DOCKERFILE} \
+    .
 }
 
 
