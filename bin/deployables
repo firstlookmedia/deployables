@@ -436,14 +436,12 @@ function docker_build {
     fi
 
     echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
-
-    ghArg="--build-arg 'GITHUB_MACHINE_USER_KEY=$(cat $keyfile | tr -d "[:space:]")'"
   fi
 
   docker build \
     --rm=false \
     --build-arg NPM_TOKEN=$NPM_TOKEN \
-    ${ghArg} \
+     ${keyfile:+ --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )"} \
     -t ${DEPLOY_DOCKER_LOCAL_TAG} \
     -f ${DEPLOY_DOCKERFILE} \
     .
