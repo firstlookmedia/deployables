@@ -443,7 +443,7 @@ function docker_build {
   docker build \
     --rm=false \
     --build-arg NPM_TOKEN=$NPM_TOKEN \
-    "$ghArg" \
+    ${ghArg} \
     -t ${DEPLOY_DOCKER_LOCAL_TAG} \
     -f ${DEPLOY_DOCKERFILE} \
     .
