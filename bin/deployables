@@ -437,9 +437,7 @@ function docker_build {
 
     echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
 
-    ghArg="$keyfileString\""
-    ghArg="--build-arg \"GITHUB_MACHINE_USER_KEY=$(cat $keyfile; printf a)\""
-    ghArg="${ghArg%a}"
+    ghArg="--build-arg 'GITHUB_MACHINE_USER_KEY=$(cat $keyfile | tr -d "[:space:]")'"
   fi
 
   docker build \
