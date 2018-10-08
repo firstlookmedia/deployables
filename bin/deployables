@@ -130,15 +130,12 @@ function ecr_login () {
   # check environment variables
   check_environment
 
-  # Newer versions of docker don't work well with the default login args to aws-cli
-  email=""
-  if [[ $(docker --version | grep -i version) =~ 1(7|8)\. ]]; then
-    echo "Adding email remove flag"
-    email="--no-include-email"
-  fi
-
+  # Newer versions of docker don't work well with the default login args to
+  # aws-cli. There aren't any CI cases where this is an issue, but aws-cli
+  # needs to be at least 1.11.91 and Docker needs to be at least 16.0 for us to
+  # use the --no-include-email flag.
   login_command=$(
-    aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login $email
+    aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login --no-include-email
   )
 
   if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
