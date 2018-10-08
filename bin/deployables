@@ -413,7 +413,6 @@ function docker_build {
     return 1
   fi
 
-  ghArg=""
   if [[ ! -z "${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT}" ]] ; then
 
     fingerprint="$( echo ${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT} | tr -d : )"
