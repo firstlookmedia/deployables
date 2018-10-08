@@ -413,6 +413,7 @@ function docker_build {
     return 1
   fi
 
+  ghArg=""
   if [[ ! -z "${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT}" ]] ; then
 
     fingerprint="$( echo ${DEPLOY_GITHUB_MACHINE_USER_KEY_FINGERPRINT} | tr -d : )"
@@ -436,26 +437,16 @@ function docker_build {
 
     echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
 
-    docker build \
-      --rm=false \
-      --no-cache \
-      --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
-      --build-arg NPM_TOKEN=$NPM_TOKEN \
-      -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-      -f ${DEPLOY_DOCKERFILE} \
-      .
-
-  else
-
-    docker build \
-      --rm=false \
-      --build-arg NPM_TOKEN=$NPM_TOKEN \
-      -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-      -f ${DEPLOY_DOCKERFILE} \
-      .
-
+    ghArg="--build-arg GITHUB_MACHINE_USER_KEY=\"$(< ${keyfile})\""
   fi
 
+  docker build \
+    --rm=false \
+    --build-arg NPM_TOKEN=$NPM_TOKEN \
+    $ghArg \
+    -t ${DEPLOY_DOCKER_LOCAL_TAG} \
+    -f ${DEPLOY_DOCKERFILE} \
+    .
 }
 
 
