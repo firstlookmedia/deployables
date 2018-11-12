@@ -857,7 +857,7 @@ function lambda_deploy_event () {
 
 function deploy_lambda () {
     echo "Deprecated: Please use lambda_deploy()"
-    deploy_lambda
+    lambda_deploy
 }
 
 function deploy_lambda_event () {
