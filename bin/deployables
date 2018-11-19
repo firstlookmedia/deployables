@@ -41,6 +41,7 @@ DEPLOY_SHA1="${DEPLOY_SHA1:-$CIRCLE_SHA1}"
 # more bash-friendly output for jq
 JQ="jq --raw-output --exit-status"
 
+DEPLOY_CURRENT_TIME="$(date +%Y%m%d)"
 
 
 ##
@@ -77,8 +78,6 @@ function aws_configure {
     fi
 
     aws --version
-#    aws configure set default.region ${DEPLOY_AWS_REGION}
-#    aws configure set default.output json
 
     # circle v2 hack
     if [[ ! -d ~/.aws ]] ; then
@@ -229,34 +228,31 @@ function ecr_push_image () {
 
 function ecs_deploy_task () {
 
-    local image="$1"
+    local image_tag="$1"
     local subfamily="$2"
+
+    local image="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${image_tag}"
 
     echo
     echo Deploying ECS task
+    echo image: ${image_tag}
     echo image: ${image}
     echo subfamily: ${subfamily}
     echo
 
-    if [[ -z "$subfamily" ]] ; then
-        family="${DEPLOY_APP_NAME}"
-        service="${DEPLOY_APP_NAME}"
-    else
-        family="${DEPLOY_APP_NAME}-${subfamily}"
-        service="${DEPLOY_APP_NAME}-${subfamily}"
-    fi
-
     echo
-    echo "Remembering current task definition, family: ${family}"
+    echo Deploying ECS task
+    echo image: ${image_tag}
+    echo image: ${image}
+    echo subfamily: ${subfamily}
     echo
 
-    previous_version=$( \
-        aws ecs describe-services \
-            --profile ${DEPLOY_AWS_PROFILE} \
-            --cluster ${DEPLOY_ECS_CLUSTER_NAME} \
-            --services ${service} \
-            | $JQ '.services[0].taskDefinition' \
-    )
+    echo
+    echo Deploying ECS task
+    echo image: ${image_tag}
+    echo image: ${image}
+    echo subfamily: ${subfamily}
+    echo
 
     echo
     echo "Registering new task definition, family: ${family}"
@@ -279,30 +275,25 @@ function ecs_deploy_task () {
         ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
     )
 
-    if [[ -z "${DEPLOY_TASK_ROLE_ARN}" ]] ; then
-        revision_target=$( \
-            aws ecs register-task-definition \
-                --profile ${DEPLOY_AWS_PROFILE} \
-                --container-definitions "$task_def" \
-                --family "${family}" \
-                | $JQ '.taskDefinition.taskDefinitionArn' \
-        )
-    else
-        revision_target=$( \
-            aws ecs register-task-definition \
-                --profile ${DEPLOY_AWS_PROFILE} \
-                --task-role-arn "${DEPLOY_TASK_ROLE_ARN}" \
-                --container-definitions "$task_def" \
-                --family "${family}" \
-                | $JQ '.taskDefinition.taskDefinitionArn' \
-        )
-    fi
+    revision_target=$( \
+        aws ecs register-task-definition \
+            --profile ${DEPLOY_AWS_PROFILE} \
+            --family "${family}" \
+            --container-definitions "$task_def" \
+            ${DEPLOY_TASK_ROLE_ARN:+ --task-role-arn ${DEPLOY_TASK_ROLE_ARN}} \
+            | $JQ '.taskDefinition.taskDefinitionArn' \
+    )
 
     if [[ -z "$revision_target" ]] ; then
         echo "Failed to register task definition"
         exit 1
     fi
     echo "Target Revision: $revision_target"
+
+    if [ ! -z "${DEPLOY_NO_SERVICE}" ] ; then
+      echo "Skipping service deploy, DEPLOY_NO_SERVICE: ${DEPLOY_NO_SERVICE}"
+      return 0
+    fi
 
     echo
     echo Updating service
@@ -353,15 +344,15 @@ function ecs_verify_deploy () {
     echo
 
     # wait for older revisions to disappear
-    for attempt in {1..60}; do
+    for attempt in {1..100}; do
 
         revision_deployed=$( \
             aws ecs describe-services \
                 --profile ${DEPLOY_AWS_PROFILE} \
                 --cluster ${DEPLOY_ECS_CLUSTER_NAME} \
                 --services ${service} \
-                | $JQ ".services[0].deployments | .[] | select(.taskDefinition != \"$revision_target\") | .taskDefinition" \
-            )
+            | $JQ ".services[0].deployments | .[] | select(.taskDefinition != \"$revision_target\") | .taskDefinition" \
+        )
 
         if [[ -z "$revision_deployed" ]] ; then
             echo "Success: Deployed!"
@@ -371,7 +362,7 @@ function ecs_verify_deploy () {
         echo "Waiting for update:"
         echo "  revision_target: ${revision_target}"
         echo "  revision_deployed: ${revision_deployed}"
-        sleep 5
+        sleep 6
 
     done
 
@@ -425,27 +416,32 @@ function docker_build {
 
         echo "Using GITHUB_MACHINE_USER_KEY=${keyfile}"
 
-        docker build \
-            --rm=false \
-            --no-cache \
-            --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )" \
-            -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-            -f ${DEPLOY_DOCKERFILE} \
-            .
-
-    else
-
-        docker build \
-            --rm=false \
-            -t ${DEPLOY_DOCKER_LOCAL_TAG} \
-            -f ${DEPLOY_DOCKERFILE} \
-            .
-
     fi
+
+    docker build \
+        --rm=false \
+        ${NPM_TOKEN:+ --build-arg NPM_TOKEN=$NPM_TOKEN}\
+        ${keyfile:+ --build-arg GITHUB_MACHINE_USER_KEY="$(< ${keyfile} )"} \
+        -t ${DEPLOY_DOCKER_LOCAL_TAG} \
+        -f ${DEPLOY_DOCKERFILE} \
+        .
 
 }
 
 function ecs_deploy () {
+
+  # check environment variables
+  check_environment
+
+  # setup aws
+  aws_configure
+  ecr_login
+
+  _deploy_image
+  _update_service
+}
+
+function ecs_deploy_image () {
 
     # check environment variables
     check_environment
@@ -454,100 +450,24 @@ function ecs_deploy () {
     aws_configure
     ecr_login
 
-    #
-    # push images
-    #
-
-    if [[ ! -z "${DEPLOY_RETAG_AND_PUSH}" ]] ; then
-
-        remote_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_REMOTE_TAG}"
-        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_TARGET_TAG}"
-
-        echo
-        echo DEPLOY_RETAG_AND_PUSH: ${DEPLOY_RETAG_AND_PUSH}
-        echo remote_tag: ${remote_tag}
-        echo target_tag: ${target_tag}
-        echo
-
-        ecr_pull_image \
-            $remote_tag
-
-        ecr_tag_image \
-            $remote_tag \
-            $target_tag
-
-        ecr_push_image \
-            $target_tag
-
-        DEPLOY_IMAGE="${target_tag}"
-
-    else
-
-        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:$( date +%Y%m%d )-${DEPLOY_SHA1}"
-
-        echo
-        echo Pushing primary tag
-        echo target_tag: ${target_tag}
-        echo
-
-        ecr_tag_image \
-            $DEPLOY_DOCKER_LOCAL_TAG \
-            $target_tag
-
-        ecr_push_image \
-            $target_tag
-
-        if [[ ! -z "$DEPLOY_PUSH_SECONDARY_TAG" ]] ; then
-
-            secondary_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_PUSH_SECONDARY_TAG}"
-
-            echo
-            echo Pushing secondary tag
-            echo secondary_tag: ${secondary_tag}
-            echo
-
-            ecr_tag_image \
-                $target_tag \
-                $secondary_tag
-
-            ecr_push_image \
-                $secondary_tag
-        fi
-
-        DEPLOY_IMAGE="${target_tag}"
-
-    fi
-
-    if [[ -z "${DEPLOY_IMAGE}" ]] ; then
-        echo "Error: deploy image is undefined, DEPLOY_IMAGE=${DEPLOY_IMAGE}"
-        exit 1
-    fi
-
-    #
-    # deploy task defs
-    #
-
-    # deploy all the tasks first...
-    if [[ -z "$DEPLOY_ECS_FAMILIES" ]] ; then
-
-        ecs_deploy_task $DEPLOY_IMAGE
-        ecs_verify_deploy
-
-    else
-
-        for family in $DEPLOY_ECS_FAMILIES
-        do
-            ecs_deploy_task $DEPLOY_IMAGE $family
-        done
-
-        for family in $DEPLOY_ECS_FAMILIES
-        do
-            ecs_verify_deploy $family
-        done
-
-    fi
-
+    _deploy_image
 }
+
+function ecs_update_service () {
+
+    # check environment variables
+    check_environment
+
+    # setup aws
+    aws_configure
+    ecr_login
+
+    _update_service
+}
+
+#
+# lamdba
+#
 
 function lambda_package_zip () {
 
@@ -655,25 +575,25 @@ function lambda_update_from_s3 () {
     )
 
     if [[ -z "${lambda_function_sha256}" ]] ; then
-      echo "Error: Failed to update lambda function"
-      exit 1
+        echo "Error: Failed to update lambda function"
+        exit 1
     fi
 
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
 
-      lambda_function_version=$( \
-        aws lambda publish-version \
-            --profile "${DEPLOY_AWS_PROFILE}" \
-            --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --description "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
-            --code-sha-256 "${lambda_function_sha256}" \
-        | $JQ ".Version"
-      )
+        lambda_function_version=$( \
+            aws lambda publish-version \
+                --profile "${DEPLOY_AWS_PROFILE}" \
+                --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
+                --description "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
+                --code-sha-256 "${lambda_function_sha256}" \
+            | $JQ ".Version"
+        )
 
-      if [[ -z "${lambda_function_version}" ]] ; then
+        if [[ -z "${lambda_function_version}" ]] ; then
         echo "Error: Failed to publish lambda version"
-        exit 1
-      fi
+            exit 1
+        fi
 
     fi
 
@@ -707,7 +627,7 @@ function lambda_deploy () {
         lambda_package_zip
     fi
 
-    lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs4.3}"
+    lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs6.10}"
     lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
     lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
     lambda_timeout="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
@@ -732,7 +652,7 @@ function lambda_deploy () {
             --runtime "${lamdba_runtime}" \
             --environment "${lambda_env}" \
             --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
-            | $JQ ".FunctionArn"
+        | $JQ ".FunctionArn"
     )
 
     # try to update the lamda function if creation failed
@@ -749,7 +669,7 @@ function lambda_deploy () {
                 --handler "${lamdba_handler}" \
                 --environment "${lambda_env}" \
                 --runtime "${lamdba_runtime}" \
-                | $JQ ".FunctionArn"
+            | $JQ ".FunctionArn"
         )
 
         # update lambda function
@@ -771,9 +691,9 @@ function lambda_deploy () {
     fi
 
     if [[ ! -z "${DEPLOY_LAMBDA_EVENT_RULE}" ]] ; then
-      DEPLOY_LAMBDA_FUNCTION_ARN="${lambda_function_arn}"
-      DEPLOY_LAMBDA_EVENT_BASENAME="${DEPLOY_LAMBDA_EVENT_BASENAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
-      lambda_deploy_event
+        DEPLOY_LAMBDA_FUNCTION_ARN="${lambda_function_arn}"
+        DEPLOY_LAMBDA_EVENT_BASENAME="${DEPLOY_LAMBDA_EVENT_BASENAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
+        lambda_deploy_event
     fi
 }
 
@@ -806,8 +726,7 @@ function lambda_deploy_event () {
     event_rule_name="${lambda_event_basename}_rule"
     permission_statement_id="${lambda_event_basename}_permission"
 
-    # this json is a sub-json to something else, so we need to escape the quotes
-    # because the aws cli is stupid
+    # this json is a sub-json to something else, so we need to escape the quotes for the awscli
     input_json_escaped=${DEPLOY_LAMBDA_TARGET_INPUT_JSON//\"/\\\"}
 
     if [[ -z "${lambda_function_arn}" ]] ; then
@@ -820,14 +739,13 @@ function lambda_deploy_event () {
         exit 1
     fi
 
-
     # create or update a cloudwatch event rule
     event_rule_arn=$( \
         aws events put-rule \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --name "${event_rule_name}" \
             --schedule-expression "${DEPLOY_LAMBDA_EVENT_RULE}" \
-            | $JQ ".RuleArn"
+        | $JQ ".RuleArn"
     )
 
     # NB this can fail if the permission doesn't exist, this is ok.
@@ -851,7 +769,7 @@ function lambda_deploy_event () {
             --profile "${DEPLOY_AWS_PROFILE}" \
             --rule "${event_rule_name}" \
             --targets "[{ \"Id\" : \"${lambda_event_basename}_target\", \"Arn\": \"${lambda_function_arn}\" ${DEPLOY_LAMBDA_TARGET_INPUT_JSON:+,\"Input\": \"${input_json_escaped}\"}}]" \
-            | $JQ ".FailedEntryCount"
+        | $JQ ".FailedEntryCount"
     )
 
     if [[ "${failed_entry_count}" != "0" ]] ; then
@@ -868,6 +786,126 @@ function deploy_lambda () {
 function deploy_lambda_event () {
     echo "Deprecated: Please use lambda_deploy_event()"
     lambda_deploy_event
+}
+
+##
+##
+##
+
+#
+# TODO: rethink this function and the use of FLM_ENV
+#
+function _get_target_image_tag() {
+  local local_target_tag="${DEPLOY_CURRENT_TIME}-${DEPLOY_SHA1}"
+
+  if [ ! -z "$DEPLOY_ADD_ENV_TO_TAG" ]; then
+    local_target_tag="${local_target_tag}-${FLM_ENV}"
+  fi
+
+  echo $local_target_tag
+}
+
+function _deploy_image () {
+
+    #
+    # push images
+    #
+
+    if [[ ! -z "${DEPLOY_RETAG_AND_PUSH}" ]] ; then
+
+        remote_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_REMOTE_TAG}"
+        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_TARGET_TAG}"
+
+        echo
+        echo DEPLOY_RETAG_AND_PUSH: ${DEPLOY_RETAG_AND_PUSH}
+        echo remote_tag: ${remote_tag}
+        echo target_tag: ${target_tag}
+        echo
+
+        ecr_pull_image \
+            $remote_tag
+
+        ecr_tag_image \
+            $remote_tag \
+            $target_tag
+
+        ecr_push_image \
+            $target_tag
+
+        DEPLOY_IMAGE="${target_tag}"
+
+    else
+
+        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:$(_get_target_image_tag)"
+
+        echo
+        echo Pushing primary tag
+        echo target_tag: ${target_tag}
+        echo
+
+        ecr_tag_image \
+            $DEPLOY_DOCKER_LOCAL_TAG \
+            $target_tag
+
+        ecr_push_image \
+            $target_tag
+
+        if [[ ! -z "$DEPLOY_PUSH_SECONDARY_TAG" ]] ; then
+
+            secondary_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_PUSH_SECONDARY_TAG}"
+
+            echo
+            echo Pushing secondary tag
+            echo secondary_tag: ${secondary_tag}
+            echo
+
+            ecr_tag_image \
+                $target_tag \
+                $secondary_tag
+
+            ecr_push_image \
+                $secondary_tag
+        fi
+
+        DEPLOY_IMAGE="${target_tag}"
+
+    fi
+
+    if [[ -z "${DEPLOY_IMAGE}" ]] ; then
+        echo "Error: deploy image is undefined, DEPLOY_IMAGE=${DEPLOY_IMAGE}"
+        exit 1
+    fi
+
+}
+
+function _update_service() {
+
+    DEPLOY_IMAGE_TAG="$(_get_target_image_tag)"
+
+    #
+    # deploy task defs
+    #
+
+    # deploy all the tasks first...
+    if [[ -z "$DEPLOY_ECS_FAMILIES" ]] ; then
+
+        ecs_deploy_task $DEPLOY_IMAGE_TAG
+        ecs_verify_deploy
+
+    else
+
+        for family in $DEPLOY_ECS_FAMILIES
+        do
+            ecs_deploy_task $DEPLOY_IMAGE_TAG $family
+        done
+
+        for family in $DEPLOY_ECS_FAMILIES
+        do
+            ecs_verify_deploy $family
+        done
+
+    fi
+
 }
 
 ##
