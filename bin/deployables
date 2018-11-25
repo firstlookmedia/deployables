@@ -301,24 +301,17 @@ function ecs_deploy_task () {
 
     echo
     echo Deploying ECS task
-    echo image: ${image_tag}
-    echo image: ${image}
+    echo image_tag: ${image_tag}
     echo subfamily: ${subfamily}
+    echo image: ${image}
     echo
 
-    echo
-    echo Deploying ECS task
-    echo image: ${image_tag}
-    echo image: ${image}
-    echo subfamily: ${subfamily}
-    echo
-
-    echo
-    echo Deploying ECS task
-    echo image: ${image_tag}
-    echo image: ${image}
-    echo subfamily: ${subfamily}
-    echo
+    if [[ -z "$subfamily" ]] ; then
+        family="${DEPLOY_APP_NAME}"
+    else
+        family="${DEPLOY_APP_NAME}-${subfamily}"
+    fi
+    service="${family}"
 
     echo
     echo "Registering new task definition, family: ${family}"
