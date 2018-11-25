@@ -197,7 +197,7 @@ function ecr_login () {
     check_environment
 
     login_command=$(
-        aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login --no-include-email (
+        aws --profile=${DEPLOY_AWS_PROFILE} ecr get-login --no-include-email
     )
 
     if [[ ! "$login_command" =~ "https://${DEPLOY_AWS_ACCOUNT}" ]]; then
