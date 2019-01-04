@@ -4,8 +4,8 @@
 which ${DEPLOY_ENVSUBST_COMMAND:-envsubst} > /dev/null 2>&1
 
 if [[ $? == 0 ]] ; then
-	echo [ok] Found "envsubst"
-	exit 0
+    echo [ok] Found "envsubst"
+    exit 0
 fi
 
 echo

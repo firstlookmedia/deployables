@@ -13,9 +13,9 @@ output=$(
 )
 
 if [[ $? == 0 ]] ; then
-	echo "[ok] ecr_login succeeded"
+    echo "[ok] ecr_login succeeded"
 else
-	echo "[error] ecr_login failed"
-	echo "$output"
-	exit 1
+    echo "[error] ecr_login failed"
+    echo "$output"
+    exit 1
 fi
