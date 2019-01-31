@@ -338,13 +338,13 @@ function ecs_deploy_task () {
         aws ecs register-task-definition \
             --profile ${DEPLOY_AWS_PROFILE} \
             --family "${family}" \
-            --network-mode ${DEPLOY_ECS_NETWORK_MODE:-bridge} \
+            --container-definitions "$task_def" \
             --requires-compatibilities ${DEPLOY_ECS_REQUIRES_COMPATIBILITIES:-EC2} \
-            --execution-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_ECS_EXECUTION_ROLE_NAME} \
+            --network-mode ${DEPLOY_ECS_NETWORK_MODE:-bridge} \
             --cpu ${DEPLOY_ECS_CPU:-256} \
             --memory ${DEPLOY_ECS_MEMORY:-512} \
-            --container-definitions "$task_def" \
-            ${DEPLOY_TASK_ROLE_ARN:+ --task-role-arn ${DEPLOY_TASK_ROLE_ARN}} \
+            ${DEPLOY_ECS_EXECUTION_ROLE_NAME:+ --execution-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_ECS_EXECUTION_ROLE_NAME}} \
+            ${DEPLOY_TASK_ROLE_NAME:+ --task-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_TASK_ROLE_NAME}} \
             | $JQ '.taskDefinition.taskDefinitionArn' \
     )
 
