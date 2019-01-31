@@ -340,6 +340,7 @@ function ecs_deploy_task () {
             --family "${family}" \
             --network-mode ${DEPLOY_ECS_NETWORK_MODE:-bridge} \
             --requires-compatibilities ${DEPLOY_ECS_REQUIRES_COMPATIBILITIES:-EC2} \
+            --execution-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_ECS_EXECUTION_ROLE_NAME} \
             --cpu ${DEPLOY_ECS_CPU:-256} \
             --memory ${DEPLOY_ECS_MEMORY:-512} \
             --container-definitions "$task_def" \
