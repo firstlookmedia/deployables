@@ -841,7 +841,8 @@ function lambda_deploy_event () {
     fi
 
     if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT_JSON}" ]] ; then
-        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, not deploying event."
+        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, using default: {}"
+        DEPLOY_LAMBDA_TARGET_INPUT_JSON="{}"
         return
     fi
 
