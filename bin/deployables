@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 
 # based on https://github.com/circleci/go-ecs-ecr/blob/master/deploy.sh
 
@@ -800,6 +800,8 @@ function lambda_deploy () {
 
     # try to update the lamda function if creation failed
     if [[ -z "$lambda_function_arn" ]] ; then
+
+        echo "Info: Attemping to update existing lambda function"
 
         lambda_function_arn=$( \
             aws lambda update-function-configuration \
