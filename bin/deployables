@@ -595,6 +595,12 @@ function _ecs_update_service() {
 
 function _lambda_init_zip_vars () {
 
+    # check environment variables
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ]] ; then
+        echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
+        exit 1
+    fi
+
     if [[ -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
         DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
         mkdir -p ${DEPLOY_LAMBDA_ZIP_DIR}
@@ -637,6 +643,11 @@ function lambda_copy_zip_to_s3 () {
     aws_configure
 
     _lambda_init_zip_vars
+
+    if [[ -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
+        echo "Error: DEPLOY_LAMBDA_S3_BUCKET is required"
+        exit 1
+    fi
 
     # copy to version-specific or commit-hash key
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
