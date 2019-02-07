@@ -65,6 +65,12 @@ function check_environment {
 function aws_configure {
 
     echo
+    echo "Updating aws-cli
+    echo
+
+    pip install --upgrade --force awscli
+
+    echo
     echo "Configuring AWS CLI"
     echo
 
