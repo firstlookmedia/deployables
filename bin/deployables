@@ -339,7 +339,12 @@ function ecs_deploy_task () {
             --profile ${DEPLOY_AWS_PROFILE} \
             --family "${family}" \
             --container-definitions "$task_def" \
-            ${DEPLOY_TASK_ROLE_ARN:+ --task-role-arn ${DEPLOY_TASK_ROLE_ARN}} \
+            --requires-compatibilities ${DEPLOY_ECS_REQUIRES_COMPATIBILITIES:-EC2} \
+            --network-mode ${DEPLOY_ECS_NETWORK_MODE:-bridge} \
+            --cpu ${DEPLOY_ECS_CPU:-256} \
+            --memory ${DEPLOY_ECS_MEMORY:-512} \
+            ${DEPLOY_ECS_EXECUTION_ROLE_NAME:+ --execution-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_ECS_EXECUTION_ROLE_NAME}} \
+            ${DEPLOY_TASK_ROLE_NAME:+ --task-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_TASK_ROLE_NAME}} \
             | $JQ '.taskDefinition.taskDefinitionArn' \
     )
 
@@ -835,7 +840,8 @@ function lambda_deploy_event () {
     fi
 
     if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT_JSON}" ]] ; then
-        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, not deploying event."
+        echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, using default: {}"
+        DEPLOY_LAMBDA_TARGET_INPUT_JSON="{}"
         return
     fi
 
