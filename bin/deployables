@@ -616,7 +616,7 @@ function _lambda_init_zip_vars () {
 
 function lambda_package_zip () {
 
-    _lambda_init_zip_vars()
+    _lambda_init_zip_vars
 
     DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
 
