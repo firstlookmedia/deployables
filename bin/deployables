@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 
 # based on https://github.com/circleci/go-ecs-ecr/blob/master/deploy.sh
 
@@ -593,9 +593,13 @@ function _ecs_update_service() {
 ## lamdba
 ##
 
-function lambda_package_zip () {
+function _lambda_init_zip_vars () {
 
-    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+    # check environment variables
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_NAME}" ]] ; then
+        echo "Error: DEPLOY_LAMBDA_FUNCTION_NAME is required"
+        exit 1
+    fi
 
     if [[ -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
         DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
@@ -614,6 +618,14 @@ function lambda_package_zip () {
         DEPLOY_LAMBDA_ZIP_QUIET=""
     fi
 
+}
+
+function lambda_package_zip () {
+
+    _lambda_init_zip_vars
+
+    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+
     # zip into deploy package
     pushd "${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
     zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} . -x "*.git*"
@@ -629,6 +641,13 @@ function lambda_package_zip () {
 function lambda_copy_zip_to_s3 () {
 
     aws_configure
+
+    _lambda_init_zip_vars
+
+    if [[ -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
+        echo "Error: DEPLOY_LAMBDA_S3_BUCKET is required"
+        exit 1
+    fi
 
     # copy to version-specific or commit-hash key
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
@@ -781,6 +800,8 @@ function lambda_deploy () {
 
     # try to update the lamda function if creation failed
     if [[ -z "$lambda_function_arn" ]] ; then
+
+        echo "Info: Attemping to update existing lambda function"
 
         lambda_function_arn=$( \
             aws lambda update-function-configuration \
