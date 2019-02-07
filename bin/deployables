@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 # based on https://github.com/circleci/go-ecs-ecr/blob/master/deploy.sh
 
@@ -65,7 +65,7 @@ function check_environment {
 function aws_configure {
 
     echo
-    echo "Updating aws-cli
+    echo "Updating aws-cli"
     echo
 
     pip install --upgrade --force awscli
