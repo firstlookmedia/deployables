@@ -593,9 +593,7 @@ function _ecs_update_service() {
 ## lamdba
 ##
 
-function lambda_package_zip () {
-
-    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+function _lambda_init_zip_vars () {
 
     if [[ -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
         DEPLOY_LAMBDA_ZIP_DIR="${DEPLOY_LAMBDA_ZIP_DIR:-/tmp/deploy_artifacts}"
@@ -614,6 +612,14 @@ function lambda_package_zip () {
         DEPLOY_LAMBDA_ZIP_QUIET=""
     fi
 
+}
+
+function lambda_package_zip () {
+
+    _lambda_init_zip_vars()
+
+    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+
     # zip into deploy package
     pushd "${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
     zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} . -x "*.git*"
@@ -629,6 +635,8 @@ function lambda_package_zip () {
 function lambda_copy_zip_to_s3 () {
 
     aws_configure
+
+    _lambda_init_zip_vars
 
     # copy to version-specific or commit-hash key
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
