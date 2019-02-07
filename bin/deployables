@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 # based on https://github.com/circleci/go-ecs-ecr/blob/master/deploy.sh
 
