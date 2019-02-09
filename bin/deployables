@@ -68,7 +68,7 @@ function aws_configure {
     echo "Updating aws-cli"
     echo
 
-    pip install --upgrade --force awscli
+    pip install --upgrade awscli
 
     echo
     echo "Configuring AWS CLI"
