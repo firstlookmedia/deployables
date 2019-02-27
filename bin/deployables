@@ -65,12 +65,6 @@ function check_environment {
 function aws_configure {
 
     echo
-    echo "Updating aws-cli"
-    echo
-
-    pip install --upgrade awscli
-
-    echo
     echo "Configuring AWS CLI"
     echo
 
@@ -784,9 +778,11 @@ function lambda_deploy () {
 
     lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
-    lambda_env=$( \
-        ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
-    )
+    if [[ -f ${lambda_env_template} ]] ; then
+      lambda_env=$( \
+          ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
+      )
+    fi
 
     # create lambda function
     lambda_function_arn=$( \
@@ -799,7 +795,7 @@ function lambda_deploy () {
             --role "${lambda_role}" \
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
-            --environment "${lambda_env}" \
+            ${lambda_env:+ --environment "${lambda_env}"} \
             --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
         | $JQ ".FunctionArn"
     )
@@ -818,7 +814,7 @@ function lambda_deploy () {
                 --memory-size "${lambda_memory_size}" \
                 --role "${lambda_role}" \
                 --handler "${lamdba_handler}" \
-                --environment "${lambda_env}" \
+                ${lambda_env:+ --environment "${lambda_env}"} \
                 --runtime "${lamdba_runtime}" \
             | $JQ ".FunctionArn"
         )
