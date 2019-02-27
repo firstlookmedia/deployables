@@ -820,14 +820,35 @@ function lambda_deploy () {
         )
 
         # update lambda function
-        aws lambda update-function-code \
-            --profile "${DEPLOY_AWS_PROFILE}" \
-            --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}"
+        lambda_function_sha256=$( \
+          aws lambda update-function-code \
+              --profile "${DEPLOY_AWS_PROFILE}" \
+              --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+              --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}"
+          | $JQ ".CodeSha256"
+        )
 
-        if [[ "$?" != "0" ]] ; then
+        if [[ -z "${lambda_function_sha256}" ]] ; then
             echo "Error: Failed to update lambda function"
             exit 1
+        fi
+
+        if [[ ! -z "${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION}" ]] ; then
+
+            lambda_function_version=$( \
+                aws lambda publish-version \
+                    --profile "${DEPLOY_AWS_PROFILE}" \
+                    --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+                    --description "New version published by deployables" \
+                    --code-sha-256 "${lambda_function_sha256}" \
+                | $JQ ".Version"
+            )
+
+            if [[ -z "${lambda_function_version}" ]] ; then
+                echo "Error: Failed to publish lambda version"
+                exit 1
+            fi
+
         fi
 
     fi
