@@ -824,7 +824,7 @@ function lambda_deploy () {
           aws lambda update-function-code \
               --profile "${DEPLOY_AWS_PROFILE}" \
               --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-              --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}"
+              --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
           | $JQ ".CodeSha256"
         )
 
