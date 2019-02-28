@@ -835,6 +835,8 @@ function lambda_deploy () {
 
         if [[ ! -z "${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION}" ]] ; then
 
+            echo "Info: Attemping to publish new version of the lambda function"
+
             lambda_function_version=$( \
                 aws lambda publish-version \
                     --profile "${DEPLOY_AWS_PROFILE}" \
@@ -863,6 +865,8 @@ function lambda_deploy () {
         DEPLOY_LAMBDA_EVENT_BASENAME="${DEPLOY_LAMBDA_EVENT_BASENAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
         lambda_deploy_event
     fi
+
+    echo "Info: lambda_deploy completed"
 }
 
 function lambda_deploy_event () {
