@@ -10,15 +10,16 @@ if [[ ! -z "${DEPLOY_DEBUG}" ]] ; then
     set -x
 fi
 
-
 ##
 ## environment variables
 ##
 
 # circle v2 hack: source env file
-echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
 if [[ ! -z "${DEPLOY_ENV_FILE}" ]] ; then
+  echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
   source $DEPLOY_ENV_FILE
+else
+  echo "Info: DEPLOY_ENV_FILE is not defined"
 fi
 
 #
@@ -301,6 +302,11 @@ function ecs_deploy_task () {
 
     local image="${DEPLOY_ECR_HOST}/${ecr_repo_name}:${image_tag}"
 
+    if [[ ! "${DEPLOY_ECS_REQUIRES_COMPATIBILITIES}" == "FARGATE" ]] ; then
+        echo "Info: DEPLOY_ECS_REQUIRES_COMPATIBILITIES is FARGATE"
+        requires_fargate="yes"
+    fi
+
     echo
     echo Deploying ECS task
     echo image_tag: ${image_tag}
@@ -341,10 +347,10 @@ function ecs_deploy_task () {
             --profile ${DEPLOY_AWS_PROFILE} \
             --family "${family}" \
             --container-definitions "$task_def" \
-            --requires-compatibilities ${DEPLOY_ECS_REQUIRES_COMPATIBILITIES:-EC2} \
-            --network-mode ${DEPLOY_ECS_NETWORK_MODE:-bridge} \
-            --cpu ${DEPLOY_ECS_CPU:-256} \
-            --memory ${DEPLOY_ECS_MEMORY:-512} \
+            ${requires_fargate:+ --requires-compatibilities FARGATE} \
+            ${requires_fargate:+ --network-mode awsvpc} \
+            ${requires_fargate:+ --cpu ${DEPLOY_ECS_FARGATE_CPU:-256}} \
+            ${requires_fargate:+ --memory ${DEPLOY_ECS_FARGATE_MEMORY:-512}} \
             ${DEPLOY_ECS_EXECUTION_ROLE_NAME:+ --execution-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_ECS_EXECUTION_ROLE_NAME}} \
             ${DEPLOY_TASK_ROLE_NAME:+ --task-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_TASK_ROLE_NAME}} \
             | $JQ '.taskDefinition.taskDefinitionArn' \
