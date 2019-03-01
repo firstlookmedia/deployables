@@ -302,11 +302,6 @@ function ecs_deploy_task () {
 
     local image="${DEPLOY_ECR_HOST}/${ecr_repo_name}:${image_tag}"
 
-    if [[ ! "${DEPLOY_ECS_REQUIRES_COMPATIBILITIES}" == "FARGATE" ]] ; then
-        echo "Info: DEPLOY_ECS_REQUIRES_COMPATIBILITIES is FARGATE"
-        requires_fargate="yes"
-    fi
-
     echo
     echo Deploying ECS task
     echo image_tag: ${image_tag}
@@ -341,6 +336,11 @@ function ecs_deploy_task () {
         DEPLOY_APP_NAME=${family} \
         ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
     )
+
+    if [[ "${DEPLOY_ECS_REQUIRES_COMPATIBILITIES}" == "FARGATE" ]] ; then
+        echo "Info: DEPLOY_ECS_REQUIRES_COMPATIBILITIES is FARGATE"
+        requires_fargate="yes"
+    fi
 
     revision_target=$( \
         aws ecs register-task-definition \
