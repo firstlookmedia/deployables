@@ -480,14 +480,12 @@ function ecs_update_service () {
 }
 
 
-#
-# TODO: rethink this function and the use of FLM_ENV
-#
 function _get_target_image_tag() {
+
   local local_target_tag="${DEPLOY_CURRENT_TIME}-${DEPLOY_SHA1}"
 
   if [ ! -z "$DEPLOY_ADD_ENV_TO_TAG" ]; then
-    local_target_tag="${local_target_tag}-${FLM_ENV}"
+    local_target_tag="${local_target_tag}-${DEPLOY_ADD_ENV_TO_TAG:-$FLM_ENV}"
   fi
 
   echo $local_target_tag
@@ -570,7 +568,7 @@ function _ecs_deploy_image () {
 
 function _ecs_update_service() {
 
-    DEPLOY_IMAGE_TAG="$(_get_target_image_tag)"
+    DEPLOY_IMAGE_TAG="${DEPLOY_IMAGE_TAG:-$(_get_target_image_tag)}"
 
     #
     # deploy task defs
