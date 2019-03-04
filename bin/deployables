@@ -10,15 +10,16 @@ if [[ ! -z "${DEPLOY_DEBUG}" ]] ; then
     set -x
 fi
 
-
 ##
 ## environment variables
 ##
 
 # circle v2 hack: source env file
-echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
 if [[ ! -z "${DEPLOY_ENV_FILE}" ]] ; then
+  echo DEPLOY_ENV_FILE: $DEPLOY_ENV_FILE
   source $DEPLOY_ENV_FILE
+else
+  echo "Info: DEPLOY_ENV_FILE is not defined"
 fi
 
 #
@@ -63,12 +64,6 @@ function check_environment {
 }
 
 function aws_configure {
-
-    echo
-    echo "Updating aws-cli"
-    echo
-
-    pip install --upgrade awscli
 
     echo
     echo "Configuring AWS CLI"
@@ -303,7 +298,9 @@ function ecs_deploy_task () {
     local image_tag="$1"
     local subfamily="$2"
 
-    local image="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${image_tag}"
+    local ecr_repo_name="${DEPLOY_ECR_REPO:-$DEPLOY_APP_NAME}"
+
+    local image="${DEPLOY_ECR_HOST}/${ecr_repo_name}:${image_tag}"
 
     echo
     echo Deploying ECS task
@@ -340,15 +337,20 @@ function ecs_deploy_task () {
         ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${task_def_template}"
     )
 
+    if [[ "${DEPLOY_ECS_REQUIRES_COMPATIBILITIES}" == "FARGATE" ]] ; then
+        echo "Info: DEPLOY_ECS_REQUIRES_COMPATIBILITIES is FARGATE"
+        requires_fargate="yes"
+    fi
+
     revision_target=$( \
         aws ecs register-task-definition \
             --profile ${DEPLOY_AWS_PROFILE} \
             --family "${family}" \
             --container-definitions "$task_def" \
-            --requires-compatibilities ${DEPLOY_ECS_REQUIRES_COMPATIBILITIES:-EC2} \
-            --network-mode ${DEPLOY_ECS_NETWORK_MODE:-bridge} \
-            --cpu ${DEPLOY_ECS_CPU:-256} \
-            --memory ${DEPLOY_ECS_MEMORY:-512} \
+            ${requires_fargate:+ --requires-compatibilities FARGATE} \
+            ${requires_fargate:+ --network-mode awsvpc} \
+            ${requires_fargate:+ --cpu ${DEPLOY_ECS_FARGATE_CPU:-256}} \
+            ${requires_fargate:+ --memory ${DEPLOY_ECS_FARGATE_MEMORY:-512}} \
             ${DEPLOY_ECS_EXECUTION_ROLE_NAME:+ --execution-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_ECS_EXECUTION_ROLE_NAME}} \
             ${DEPLOY_TASK_ROLE_NAME:+ --task-role-arn arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_TASK_ROLE_NAME}} \
             | $JQ '.taskDefinition.taskDefinitionArn' \
@@ -478,14 +480,12 @@ function ecs_update_service () {
 }
 
 
-#
-# TODO: rethink this function and the use of FLM_ENV
-#
 function _get_target_image_tag() {
+
   local local_target_tag="${DEPLOY_CURRENT_TIME}-${DEPLOY_SHA1}"
 
   if [ ! -z "$DEPLOY_ADD_ENV_TO_TAG" ]; then
-    local_target_tag="${local_target_tag}-${FLM_ENV}"
+    local_target_tag="${local_target_tag}-${DEPLOY_ADD_ENV_TO_TAG:-$FLM_ENV}"
   fi
 
   echo $local_target_tag
@@ -497,10 +497,12 @@ function _ecs_deploy_image () {
     # push images
     #
 
+    local ecr_repo_name="${DEPLOY_ECR_REPO:-$DEPLOY_APP_NAME}"
+
     if [[ ! -z "${DEPLOY_RETAG_AND_PUSH}" ]] ; then
 
-        remote_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_REMOTE_TAG}"
-        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_RETAG_TARGET_TAG}"
+        remote_tag="${DEPLOY_ECR_HOST}/${ecr_repo_name}:${DEPLOY_RETAG_REMOTE_TAG}"
+        target_tag="${DEPLOY_ECR_HOST}/${ecr_repo_name}:${DEPLOY_RETAG_TARGET_TAG}"
 
         echo
         echo DEPLOY_RETAG_AND_PUSH: ${DEPLOY_RETAG_AND_PUSH}
@@ -522,7 +524,7 @@ function _ecs_deploy_image () {
 
     else
 
-        target_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:$(_get_target_image_tag)"
+        target_tag="${DEPLOY_ECR_HOST}/${ecr_repo_name}:$(_get_target_image_tag)"
 
         echo
         echo Pushing primary tag
@@ -538,7 +540,7 @@ function _ecs_deploy_image () {
 
         if [[ ! -z "$DEPLOY_PUSH_SECONDARY_TAG" ]] ; then
 
-            secondary_tag="${DEPLOY_ECR_HOST}/${DEPLOY_APP_NAME}:${DEPLOY_PUSH_SECONDARY_TAG}"
+            secondary_tag="${DEPLOY_ECR_HOST}/${ecr_repo_name}:${DEPLOY_PUSH_SECONDARY_TAG}"
 
             echo
             echo Pushing secondary tag
@@ -566,7 +568,7 @@ function _ecs_deploy_image () {
 
 function _ecs_update_service() {
 
-    DEPLOY_IMAGE_TAG="$(_get_target_image_tag)"
+    DEPLOY_IMAGE_TAG="${DEPLOY_IMAGE_TAG:-$(_get_target_image_tag)}"
 
     #
     # deploy task defs
@@ -784,11 +786,15 @@ function lambda_deploy () {
 
     lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
-    lambda_env=$( \
-        ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
-    )
+    if [[ -f ${lambda_env_template} ]] ; then
+      lambda_env=$( \
+          ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
+      )
+    fi
 
     # create lambda function
+    echo "Info: Attemping to create lambda function"
+
     lambda_function_arn=$( \
         aws lambda create-function \
             --profile "${DEPLOY_AWS_PROFILE}" \
@@ -799,7 +805,7 @@ function lambda_deploy () {
             --role "${lambda_role}" \
             --handler "${lamdba_handler}" \
             --runtime "${lamdba_runtime}" \
-            --environment "${lambda_env}" \
+            ${lambda_env:+ --environment "${lambda_env}"} \
             --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
         | $JQ ".FunctionArn"
     )
@@ -818,20 +824,43 @@ function lambda_deploy () {
                 --memory-size "${lambda_memory_size}" \
                 --role "${lambda_role}" \
                 --handler "${lamdba_handler}" \
-                --environment "${lambda_env}" \
+                ${lambda_env:+ --environment "${lambda_env}"} \
                 --runtime "${lamdba_runtime}" \
             | $JQ ".FunctionArn"
         )
 
         # update lambda function
-        aws lambda update-function-code \
-            --profile "${DEPLOY_AWS_PROFILE}" \
-            --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}"
+        lambda_function_sha256=$( \
+          aws lambda update-function-code \
+              --profile "${DEPLOY_AWS_PROFILE}" \
+              --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+              --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
+          | $JQ ".CodeSha256"
+        )
 
-        if [[ "$?" != "0" ]] ; then
+        if [[ -z "${lambda_function_sha256}" ]] ; then
             echo "Error: Failed to update lambda function"
             exit 1
+        fi
+
+        if [[ ! -z "${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION}" ]] ; then
+
+            echo "Info: Attemping to publish new version of the lambda function"
+
+            lambda_function_version=$( \
+                aws lambda publish-version \
+                    --profile "${DEPLOY_AWS_PROFILE}" \
+                    --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+                    --description "New version published by deployables" \
+                    --code-sha-256 "${lambda_function_sha256}" \
+                | $JQ ".Version"
+            )
+
+            if [[ -z "${lambda_function_version}" ]] ; then
+                echo "Error: Failed to publish lambda version"
+                exit 1
+            fi
+
         fi
 
     fi
@@ -846,6 +875,8 @@ function lambda_deploy () {
         DEPLOY_LAMBDA_EVENT_BASENAME="${DEPLOY_LAMBDA_EVENT_BASENAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
         lambda_deploy_event
     fi
+
+    echo "Info: lambda_deploy completed"
 }
 
 function lambda_deploy_event () {
