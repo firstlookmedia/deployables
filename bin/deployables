@@ -900,7 +900,6 @@ function lambda_deploy_event () {
     if [[ -z "${DEPLOY_LAMBDA_TARGET_INPUT_JSON}" ]] ; then
         echo "Info: No DEPLOY_LAMBDA_TARGET_INPUT_JSON, using default: {}"
         DEPLOY_LAMBDA_TARGET_INPUT_JSON="{}"
-        return
     fi
 
     aws_configure
