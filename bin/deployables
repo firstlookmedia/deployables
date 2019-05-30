@@ -598,7 +598,7 @@ function _ecs_update_service() {
 
 
 ##
-## lamdba
+## lambda
 ##
 
 function _lambda_init_zip_vars () {
@@ -778,8 +778,8 @@ function lambda_deploy () {
         lambda_package_zip
     fi
 
-    lamdba_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs6.10}"
-    lamdba_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
+    lambda_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs6.10}"
+    lambda_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
     lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
     lambda_timeout="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
     lambda_memory_size="${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE:-128}"
@@ -803,8 +803,8 @@ function lambda_deploy () {
             --timeout "${lambda_timeout}" \
             --memory-size "${lambda_memory_size}" \
             --role "${lambda_role}" \
-            --handler "${lamdba_handler}" \
-            --runtime "${lamdba_runtime}" \
+            --handler "${lambda_handler}" \
+            --runtime "${lambda_runtime}" \
             ${lambda_env:+ --environment "${lambda_env}"} \
             --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
         | $JQ ".FunctionArn"
@@ -823,9 +823,9 @@ function lambda_deploy () {
                 --timeout "${lambda_timeout}" \
                 --memory-size "${lambda_memory_size}" \
                 --role "${lambda_role}" \
-                --handler "${lamdba_handler}" \
+                --handler "${lambda_handler}" \
                 ${lambda_env:+ --environment "${lambda_env}"} \
-                --runtime "${lamdba_runtime}" \
+                --runtime "${lambda_runtime}" \
             | $JQ ".FunctionArn"
         )
 
