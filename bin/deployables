@@ -715,6 +715,20 @@ function lambda_update_from_s3 () {
     # setup aws
     aws_configure
 
+
+    lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
+
+    if [[ -f ${lambda_env_template} ]] ; then
+      lambda_env=$( \
+          ${DEPLOY_ENVSUBST_COMMAND:-envsubst} < "${lambda_env_template}"
+      )
+    fi
+
+    # update lambda configuration
+		aws lambda update-function-configuration \
+		  --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
+			${lambda_env:+ --environment "${lambda_env}"} 
+			
     # update lambda function
     lambda_function_sha256=$( \
         aws lambda update-function-code \
