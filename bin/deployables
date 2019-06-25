@@ -725,12 +725,33 @@ function lambda_update_from_s3 () {
     fi
 
     # update lambda configuration
-		# aws lambda update-function-configuration \
-		#   --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
-		# 	${lambda_env:+ --environment "${lambda_env}"} 
-		aws lambda update-function-configuration \
-		  --function-name "arn:aws:lambda:us-east-1:${DEPLOY_AWS_ACCOUNT:-$DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" 
-			
+    # aws lambda update-function-configuration \
+    #   --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
+    # ${lambda_env:+ --environment "${lambda_env}"}
+    # aws lambda update-function-configuration \
+    #   --function-name "arn:aws:lambda:us-east-1:${DEPLOY_AWS_ACCOUNT:-$DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
+
+    echo "Info: Attemping to update existing lambda function"
+
+    lambda_function_arn=$( \
+        aws lambda update-function-configuration \
+            --profile "${DEPLOY_AWS_PROFILE}" \
+            --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+            --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+            --timeout "${lambda_timeout}" \
+            --memory-size "${lambda_memory_size}" \
+            --role "${lambda_role}" \
+            --handler "${lambda_handler}" \
+            --runtime "${lambda_runtime}" \
+            ${lambda_env:+ --environment "${lambda_env}"} \
+        | $JQ ".FunctionArn"
+    )
+
+    if [[ -z "${lambda_function_arn}" ]] ; then
+        echo "Error: Failed to update lambda function configuration"
+        exit 1
+    fi
+
     # update lambda function
     lambda_function_sha256=$( \
         aws lambda update-function-code \
@@ -822,6 +843,7 @@ function lambda_deploy () {
             --handler "${lambda_handler}" \
             --runtime "${lambda_runtime}" \
             ${lambda_env:+ --environment "${lambda_env}"} \
+            ${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION:+ --publish} \
             --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
         | $JQ ".FunctionArn"
     )
@@ -840,8 +862,8 @@ function lambda_deploy () {
                 --memory-size "${lambda_memory_size}" \
                 --role "${lambda_role}" \
                 --handler "${lambda_handler}" \
-                ${lambda_env:+ --environment "${lambda_env}"} \
                 --runtime "${lambda_runtime}" \
+                ${lambda_env:+ --environment "${lambda_env}"} \
             | $JQ ".FunctionArn"
         )
 
@@ -850,6 +872,7 @@ function lambda_deploy () {
           aws lambda update-function-code \
               --profile "${DEPLOY_AWS_PROFILE}" \
               --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+              ${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION:+ --publish} \
               --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
           | $JQ ".CodeSha256"
         )
@@ -857,26 +880,6 @@ function lambda_deploy () {
         if [[ -z "${lambda_function_sha256}" ]] ; then
             echo "Error: Failed to update lambda function"
             exit 1
-        fi
-
-        if [[ ! -z "${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION}" ]] ; then
-
-            echo "Info: Attemping to publish new version of the lambda function"
-
-            lambda_function_version=$( \
-                aws lambda publish-version \
-                    --profile "${DEPLOY_AWS_PROFILE}" \
-                    --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-                    --description "New version published by deployables" \
-                    --code-sha-256 "${lambda_function_sha256}" \
-                | $JQ ".Version"
-            )
-
-            if [[ -z "${lambda_function_version}" ]] ; then
-                echo "Error: Failed to publish lambda version"
-                exit 1
-            fi
-
         fi
 
     fi
