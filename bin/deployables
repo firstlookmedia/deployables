@@ -836,6 +836,7 @@ function lambda_deploy () {
     else
       if [[ ! -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
         echo "Info: Lambda zip file size is greater than 50MB; attempting to deploy via S3"
+        echo "Info: DEPLOY_LAMBDA_ZIP_FILESIZE: ${DEPLOY_LAMBDA_ZIP_FILESIZE}"
         lambda_code_parameters=$( echo \
            --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
            --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
@@ -846,8 +847,6 @@ function lambda_deploy () {
 
       fi
     fi
-
-    echo "DEPLOY_LAMBDA_ZIP_FILESIZE: ${DEPLOY_LAMBDA_ZIP_FILESIZE}"
 
     lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
 
@@ -881,6 +880,7 @@ function lambda_deploy () {
     # try to update the lamda function if creation failed
     if [[ -z "$lambda_function_arn" ]] ; then
 
+        echo "Info: Creating a new lambda function failed"
         echo "Info: Attemping to update existing lambda function"
 
         lambda_function_arn=$( \
