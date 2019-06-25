@@ -653,6 +653,9 @@ function lambda_package_zip () {
         exit 1
     fi
 
+    DEPLOY_LAMBDA_ZIP_FILESIZE=$(stat -c%s "$DEPLOY_LAMBDA_ZIP_FULLPATH")
+    echo "DEPLOY_LAMBDA_ZIP_FILESIZE: ${DEPLOY_LAMBDA_ZIP_FILESIZE}
+
 }
 
 function lambda_copy_zip_to_s3 () {
