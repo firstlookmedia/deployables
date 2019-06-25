@@ -836,7 +836,7 @@ function lambda_deploy () {
     else
       if [[ ! -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
         echo "Info: Lambda zip file size is greater than 50MB; attempting to deploy via S3"
-        lambda_code_parameters = $( echo \
+        lambda_code_parameters=$( echo \
            --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
            --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip"
         )
