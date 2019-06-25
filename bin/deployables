@@ -874,7 +874,7 @@ function lambda_deploy () {
             --runtime "${DEPLOY_LAMBDA_FUNCTION_RUNTIME}" \
             ${lambda_env:+ --environment "${lambda_env}"} \
             ${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION:+ --publish} \
-            ${lambda_code_parameters}
+            ${lambda_code_parameters} \
         | $JQ ".FunctionArn"
     )
 
