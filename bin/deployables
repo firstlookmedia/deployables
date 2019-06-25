@@ -44,6 +44,15 @@ JQ="jq --raw-output --exit-status"
 
 DEPLOY_CURRENT_TIME="$(date +%Y%m%d)"
 
+##
+## lambda defaults
+##
+
+DEPLOY_LAMBDA_FUNCTION_RUNTIME="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs6.10}"
+DEPLOY_LAMBDA_FUNCTION_HANDLER="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
+DEPLOY_LAMBDA_FUNCTION_TIMEOUT="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
+DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE="${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE:-128}"
+
 
 ##
 ## private functions
@@ -707,6 +716,11 @@ function lambda_update_from_s3 () {
         exit 1
     fi
 
+    if [[ -z "${DEPLOY_LAMBDA_FUNCTION_ROLE}" ]] ; then
+        echo "Error: DEPLOY_LAMBDA_FUNCTION_ROLE is required"
+        exit 1
+    fi
+
     if [[ -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
         echo "Error: DEPLOY_LAMBDA_S3_BUCKET is required"
         exit 1
@@ -724,26 +738,21 @@ function lambda_update_from_s3 () {
       )
     fi
 
-    # update lambda configuration
-    # aws lambda update-function-configuration \
-    #   --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
-    # ${lambda_env:+ --environment "${lambda_env}"}
-    # aws lambda update-function-configuration \
-    #   --function-name "arn:aws:lambda:us-east-1:${DEPLOY_AWS_ACCOUNT:-$DEPLOY_AWS_ACCOUNT}:function:${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}"
-
     echo "Info: Attemping to update existing lambda function"
+
+    lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
 
     lambda_function_arn=$( \
         aws lambda update-function-configuration \
-            --profile "${DEPLOY_AWS_PROFILE}" \
+            --profile       "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+            --description   "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+            --handler       "${DEPLOY_LAMBDA_FUNCTION_HANDLER}" \
+            --memory-size   "${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE}" \
+            --runtime       "${DEPLOY_LAMBDA_FUNCTION_RUNTIME}" \
+            --timeout       "${DEPLOY_LAMBDA_FUNCTION_TIMEOUT}" \
+            --role          "${lambda_role}" \
             ${lambda_env:+ --environment "${lambda_env}"} \
-#            --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-#            --timeout "${lambda_timeout}" \
-#            --memory-size "${lambda_memory_size}" \
-#            --role "${lambda_role}" \
-#            --handler "${lambda_handler}" \
-#            --runtime "${lambda_runtime}" \
         | $JQ ".FunctionArn"
     )
 
@@ -755,10 +764,10 @@ function lambda_update_from_s3 () {
     # update lambda function
     lambda_function_sha256=$( \
         aws lambda update-function-code \
-            --profile "${DEPLOY_AWS_PROFILE}" \
-            --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
-            --s3-key "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
+            --profile       "${DEPLOY_AWS_PROFILE}" \
+            --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+            --s3-bucket     "${DEPLOY_LAMBDA_S3_BUCKET}" \
+            --s3-key        "${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip" \
         | $JQ ".CodeSha256"
     )
 
@@ -771,9 +780,9 @@ function lambda_update_from_s3 () {
 
         lambda_function_version=$( \
             aws lambda publish-version \
-                --profile "${DEPLOY_AWS_PROFILE}" \
-                --function-name "${DEPLOY_LAMBDA_TARGET_FUNCTION_NAME:-$DEPLOY_LAMBDA_FUNCTION_NAME}" \
-                --description "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
+                --profile       "${DEPLOY_AWS_PROFILE}" \
+                --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
+                --description   "${DEPLOY_LAMBDA_ZIP_VERSION} created by deployables" \
                 --code-sha-256 "${lambda_function_sha256}" \
             | $JQ ".Version"
         )
@@ -815,11 +824,7 @@ function lambda_deploy () {
         lambda_package_zip
     fi
 
-    lambda_runtime="${DEPLOY_LAMBDA_FUNCTION_RUNTIME:-nodejs6.10}"
-    lambda_handler="${DEPLOY_LAMBDA_FUNCTION_HANDLER:-index.handler}"
     lambda_role="arn:aws:iam::${DEPLOY_AWS_ACCOUNT}:role/${DEPLOY_LAMBDA_FUNCTION_ROLE}"
-    lambda_timeout="${DEPLOY_LAMBDA_FUNCTION_TIMEOUT:-3}"
-    lambda_memory_size="${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE:-128}"
 
     lambda_env_template="${DEPLOY_LAMBDA_FUNCTION_ENV_TEMPLATE:-environment.txt}"
 
@@ -837,11 +842,11 @@ function lambda_deploy () {
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
             --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-            --timeout "${lambda_timeout}" \
-            --memory-size "${lambda_memory_size}" \
+            --timeout "${DEPLOY_LAMBDA_FUNCTION_TIMEOUT}" \
+            --memory-size "${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE}" \
             --role "${lambda_role}" \
-            --handler "${lambda_handler}" \
-            --runtime "${lambda_runtime}" \
+            --handler "${DEPLOY_LAMBDA_FUNCTION_HANDLER}" \
+            --runtime "${DEPLOY_LAMBDA_FUNCTION_RUNTIME}" \
             ${lambda_env:+ --environment "${lambda_env}"} \
             ${DEPLOY_LAMBDA_PUBLISH_NEW_VERSION:+ --publish} \
             --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}" \
@@ -858,11 +863,11 @@ function lambda_deploy () {
                 --profile "${DEPLOY_AWS_PROFILE}" \
                 --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
                 --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-                --timeout "${lambda_timeout}" \
-                --memory-size "${lambda_memory_size}" \
+                --timeout "${DEPLOY_LAMBDA_FUNCTION_TIMEOUT}" \
+                --memory-size "${DEPLOY_LAMBDA_FUNCTION_MEMORY_SIZE}" \
                 --role "${lambda_role}" \
-                --handler "${lambda_handler}" \
-                --runtime "${lambda_runtime}" \
+                --handler "${DEPLOY_LAMBDA_FUNCTION_HANDLER}" \
+                --runtime "${DEPLOY_LAMBDA_FUNCTION_RUNTIME}" \
                 ${lambda_env:+ --environment "${lambda_env}"} \
             | $JQ ".FunctionArn"
         )
