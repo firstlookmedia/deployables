@@ -737,12 +737,12 @@ function lambda_update_from_s3 () {
         aws lambda update-function-configuration \
             --profile "${DEPLOY_AWS_PROFILE}" \
             --function-name "${DEPLOY_LAMBDA_FUNCTION_NAME}" \
-            --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
-            --timeout "${lambda_timeout}" \
-            --memory-size "${lambda_memory_size}" \
-            --role "${lambda_role}" \
-            --handler "${lambda_handler}" \
-            --runtime "${lambda_runtime}" \
+#            --description "${DEPLOY_LAMBDA_FUNCTION_DESCRIPTION}" \
+#            --timeout "${lambda_timeout}" \
+#            --memory-size "${lambda_memory_size}" \
+#            --role "${lambda_role}" \
+#            --handler "${lambda_handler}" \
+#            --runtime "${lambda_runtime}" \
             ${lambda_env:+ --environment "${lambda_env}"} \
         | $JQ ".FunctionArn"
     )
