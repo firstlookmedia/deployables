@@ -829,7 +829,7 @@ function lambda_deploy () {
     DEPLOY_LAMBDA_ZIP_FILESIZE=$(( bytes / 1024 / 1024 ))
 
     if [[ ! -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
-      echo "Info: Deploy lambda via S3; DEPLOY_LAMBDA_S3_BUCKET: ${DEPLOY_LAMBDA_S3_BUCKET}"
+      echo "Info: Deploying lambda via S3; DEPLOY_LAMBDA_S3_BUCKET: ${DEPLOY_LAMBDA_S3_BUCKET}"
 
       lambda_code_parameters=$( echo \
          --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
@@ -837,7 +837,7 @@ function lambda_deploy () {
       )
 
     elif [[ "${DEPLOY_LAMBDA_ZIP_FILESIZE}" -lt "50" ]] ; then
-      echo "Info: Lambda zip file size is less than 50MB; Deploying code directly"
+      echo "Info: Deploying code directly; Lambda zip file size is less than 50MB"
 
       lambda_code_parameters=$( echo \
           --zip-file "fileb://${DEPLOY_LAMBDA_ZIP_FULLPATH}"
