@@ -629,21 +629,21 @@ function _lambda_init_zip_vars () {
         DEPLOY_LAMBDA_ZIP_FULLPATH="${DEPLOY_LAMBDA_ZIP_DIR}/${DEPLOY_LAMBDA_ZIP_FILENAME}"
     fi
 
-    if [[ -z "${DEPLOY_DEBUG}" ]] ; then
-        DEPLOY_LAMBDA_ZIP_QUIET="-q"
-    else
-        DEPLOY_LAMBDA_ZIP_QUIET=""
-    fi
-
 }
 
 function lambda_package_zip () {
 
     _lambda_init_zip_vars
 
-    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+    if [[ -z "${DEPLOY_DEBUG}" ]] ; then
+        DEPLOY_LAMBDA_ZIP_QUIET="-q"
+    else
+        DEPLOY_LAMBDA_ZIP_QUIET=""
+    fi
 
     # zip into deploy package
+    DEPLOY_LAMBDA_SOURCE_DIR="${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
+
     pushd "${DEPLOY_LAMBDA_SOURCE_DIR:-.}"
     zip ${DEPLOY_LAMBDA_ZIP_QUIET} -r ${DEPLOY_LAMBDA_ZIP_FULLPATH} . -x "*.git*"
     popd
@@ -666,10 +666,12 @@ function lambda_copy_zip_to_s3 () {
         exit 1
     fi
 
+    s3_cp_opts="--acl=bucket-owner-full-control --only-show-errors"
+
     # copy to version-specific or commit-hash key
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
         aws --profile "${DEPLOY_AWS_PROFILE}" \
-            s3 cp \
+            s3 cp ${s3_cp_opts} \
             ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
             s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_LAMBDA_ZIP_VERSION}.zip
 
@@ -680,7 +682,7 @@ function lambda_copy_zip_to_s3 () {
 
     elif [[ ! -z "${DEPLOY_SHA1}" ]] ; then
         aws --profile "${DEPLOY_AWS_PROFILE}" \
-            s3 cp \
+            s3 cp ${s3_cp_opts} \
             ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
             s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_SHA1}.zip
 
@@ -692,7 +694,7 @@ function lambda_copy_zip_to_s3 () {
 
     # copy to latest key
     aws --profile "${DEPLOY_AWS_PROFILE}" \
-        s3 cp \
+        s3 cp ${s3_cp_opts} \
         ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
         s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip
 
@@ -817,7 +819,7 @@ function lambda_deploy () {
     # setup aws
     aws_configure
 
-    # zip the
+    # use an existing zip, or make a new one
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] && [[ -f "${DEPLOY_LAMBDA_ZIP_FULLPATH}" ]] ; then
         echo "Skipping ... Zip already exists at ${DEPLOY_LAMBDA_ZIP_FULLPATH}"
     else
@@ -830,6 +832,9 @@ function lambda_deploy () {
 
     if [[ ! -z "${DEPLOY_LAMBDA_S3_BUCKET}" ]] ; then
       echo "Info: Deploying lambda via S3; DEPLOY_LAMBDA_S3_BUCKET: ${DEPLOY_LAMBDA_S3_BUCKET}"
+
+      # copy the zip to S3
+      lambda_copy_zip_to_s3
 
       lambda_code_parameters=$( echo \
          --s3-bucket "${DEPLOY_LAMBDA_S3_BUCKET}" \
