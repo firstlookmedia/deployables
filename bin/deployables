@@ -666,10 +666,12 @@ function lambda_copy_zip_to_s3 () {
         exit 1
     fi
 
+    s3_cp_opts="--acl=bucket-owner-full-control --only-show-errors"
+
     # copy to version-specific or commit-hash key
     if [[ ! -z "${DEPLOY_LAMBDA_ZIP_VERSION}" ]] ; then
         aws --profile "${DEPLOY_AWS_PROFILE}" \
-            s3 cp \
+            s3 cp ${s3_cp_opts} \
             ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
             s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_LAMBDA_ZIP_VERSION}.zip
 
@@ -680,7 +682,7 @@ function lambda_copy_zip_to_s3 () {
 
     elif [[ ! -z "${DEPLOY_SHA1}" ]] ; then
         aws --profile "${DEPLOY_AWS_PROFILE}" \
-            s3 cp \
+            s3 cp ${s3_cp_opts} \
             ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
             s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/archive/${DEPLOY_LAMBDA_FUNCTION_NAME}-${DEPLOY_SHA1}.zip
 
@@ -692,7 +694,7 @@ function lambda_copy_zip_to_s3 () {
 
     # copy to latest key
     aws --profile "${DEPLOY_AWS_PROFILE}" \
-        s3 cp \
+        s3 cp ${s3_cp_opts} \
         ${DEPLOY_LAMBDA_ZIP_FULLPATH} \
         s3://${DEPLOY_LAMBDA_S3_BUCKET}/${DEPLOY_LAMBDA_FUNCTION_NAME}/${DEPLOY_LAMBDA_FUNCTION_NAME}.zip
 
