@@ -1,18 +1,21 @@
 {
-    "name" : "deployables",
-    "version" : "0.0.1",
-    "description" : "various deployment scripts",
-    "repository" : {
-        "type" : "git",
-        "url"  : "https://github.com/firstlookmedia/deployables/deployables.git"
+    "name": "deployables",
+    "version": "0.0.1",
+    "description": "a basket of deploy scripts for circleci"
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jefforulez/deployables/deployables.git"
     },
-    "license" : "SEE LICENSE IN LICENSE",
-    "bin" : {
-        "deployables" : "./bin/deployables"
+    "license": "MIT",
+    "bin": {
+        "deployables": "./bin/deployables"
     },
-    "scripts" : {
+    "scripts": {
         "preinstall": "./lib/preinstall.sh"
     },
-    "os" : [ "darwin", "linux" ],
+    "os": [
+        "darwin",
+        "linux"
+    ],
     "private": true
 }
