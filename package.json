@@ -1,7 +1,7 @@
 {
     "name": "deployables",
     "version": "0.0.1",
-    "description": "a basket of deploy scripts for circleci"
+    "description": "a basket of deploy scripts for circleci",
     "repository": {
         "type": "git",
         "url": "https://github.com/jefforulez/deployables/deployables.git"
