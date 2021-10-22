@@ -104,12 +104,11 @@ EOH
 region=${DEPLOY_AWS_REGION}
 EOH
     else
-      case `grep ${DEPLOY_AWS_PROFILE} ${DEPLOY_AWS_CONFIG} > /dev/null; echo $?` in
-        0)
-          echo "AWS credentials are alreayd configured"
-          return
-          ;;
-      esac
+      $( eval grep $DEPLOY_AWS_PROFILE $DEPLOY_AWS_CONFIG > /dev/null )
+      if [[ $? == 0 ]] ; then
+        echo "AWS credentials are alreayd configured"
+        return
+      fi
     fi
 
     cat >> $( eval echo -n $DEPLOY_AWS_CONFIG ) <<EOH
